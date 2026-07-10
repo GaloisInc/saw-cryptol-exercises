@@ -1,0 +1,13 @@
+// Remove the precondition.
+
+specification <- cryptol_load "rotate.cry";
+implementation <- llvm_load_module "rotate.bc";
+
+let theoremNoPrecond = do {
+    x <- llvm_fresh_var "x" (llvm_int 8);
+    r <- llvm_fresh_var "r" (llvm_int 8);
+    llvm_execute_func [llvm_term x, llvm_term r];
+    llvm_return (llvm_term {{ specification::rotl'' x r }});
+};
+
+violation <- llvm_verify implementation "rotl_needs_precond" [] false theoremNoPrecond z3;

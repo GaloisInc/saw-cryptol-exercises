@@ -1,0 +1,54 @@
+module rotate where
+
+/**
+ * Rotation of a 7-bit number left
+ * by a 8-bit number.
+ *
+ * ```
+ * :check rotl 0b1010111 4 == 0b1111010
+ * ```
+ */
+rotl: [7] -> [8] -> [7]
+rotl x r = x <<< r
+
+/**
+ * Rotation of a 7-bit number in the
+ * low bits of an 8-bit carrier type.
+ * The high bit is stabilized.
+ *
+ * ```
+ * :check rotl' 0b11010111 4 == 0b11111010
+ * ```
+ */
+rotl': [8] -> [8] -> [8]
+rotl' x r = [b0] # ([b1, b2, b3, b4, b5, b6, b7] <<< r)
+    where
+        [b0, b1, b2, b3, b4, b5, b6, b7] = x
+
+/**
+ * Rotation of a 7-bit number in the
+ * low bits of an 8-bit carrier type.
+ * The high bit is "zeroed out".
+ *
+ * ```
+ * :check rotl'' 0b11010111 4 == 0b01111010
+ * ```
+ */
+rotl'': [8] -> [8] -> [8]
+rotl'' x r = [0] # ([b1, b2, b3, b4, b5, b6, b7] <<< r)
+    where
+        [b0, b1, b2, b3, b4, b5, b6, b7] = x
+
+/**
+ * This property states that the low 7 bits of the
+ * 8-bit rotations agree with the "original" specification.
+ *
+ * ```
+ * :prove rotlsAgree
+ * ```
+ */
+property rotlsAgree x r = (drop z'' == z)  && (drop z' == z)
+    where
+        z'' = rotl'' x r
+        z'  = rotl' x r
+        z   = rotl (drop x) r

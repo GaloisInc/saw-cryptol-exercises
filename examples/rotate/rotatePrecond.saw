@@ -1,7 +1,7 @@
 // The C implementation `rotl_needs_precond` needs a precondition
 // to achieve functional equivalence.
 
-specification <- cryptol_load "rotate.cry";
+import "rotate.cry" as specification;
 implementation <- llvm_load_module "rotate.bc";
 
 let theoremPrecond = do {

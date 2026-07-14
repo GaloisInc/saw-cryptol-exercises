@@ -2,7 +2,7 @@
 // functionally equivalent to the Cryptol specification
 // that zeroes out the high bit.
 
-specification <- cryptol_load "rotate.cry";
+import "rotate.cry" as specification;
 implementation <- llvm_load_module "rotate.bc";
 
 let theoremStatement = do {

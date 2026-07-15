@@ -12,4 +12,4 @@ let theoremStatement = do {
     llvm_return (llvm_term {{ specification::rotl'' x r }});
 };
 
-theoremProof <- llvm_verify implementation "rotl" [] false theoremStatement z3;
+theoremProof <- llvm_verify implementation "rotl" [] true theoremStatement z3;

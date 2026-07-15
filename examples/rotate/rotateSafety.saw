@@ -10,4 +10,4 @@ let theoremNoPrecond = do {
     llvm_return (llvm_term {{ specification::rotl'' x r }});
 };
 
-violation <- llvm_verify implementation "rotl_needs_precond" [] false theoremNoPrecond z3;
+violation <- llvm_verify implementation "rotl_needs_precond" [] true theoremNoPrecond z3;

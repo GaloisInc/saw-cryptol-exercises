@@ -9,4 +9,4 @@ let badReturn = do {
     llvm_return (llvm_term {{ specification::rotl' x r }});
 };
 
-counterexample <- llvm_verify implementation "rotl" [] false badReturn z3;
+counterexample <- llvm_verify implementation "rotl" [] true badReturn z3;

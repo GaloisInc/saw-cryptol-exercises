@@ -1,0 +1,12 @@
+/**
+ * Rotate a 32-bit word left by 8 bits. 
+ */
+rotWord : [4][8] -> [4][8]
+rotWord [a,b,c,d] = [b,c,d,a]
+
+
+/** 
+ * Change type to 32bit
+ */
+rotWord32: [32] -> [32]
+rotWord32 w = join(rotWord(split w))

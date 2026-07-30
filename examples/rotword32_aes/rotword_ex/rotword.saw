@@ -1,0 +1,17 @@
+// TODO: Import Cryptol Spec
+
+
+// TODO: Load the module
+
+
+let rot_word_setup = do {
+    // TODO:
+    // Create 32 bit fresh var.
+    // Symbollically execute the function.
+    // Ensure the return value matches the cryptol spec.
+};
+
+//Theorem that executes setup above using z3 to prove. Note "rot_word" needs to match c function name.
+thm_rot_word <- llvm_verify m "rot_word" [] true rot_word_setup z3;
+
+print "rot_word: C <-> Cryptol";

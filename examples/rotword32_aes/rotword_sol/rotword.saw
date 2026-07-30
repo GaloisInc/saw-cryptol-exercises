@@ -1,0 +1,15 @@
+import "rotword.cry";
+
+m <- llvm_load_module "rotword.bc";
+
+
+let rot_word_setup = do {
+    w <- llvm_fresh_var "w" (llvm_int 32); // Create 32 bit fresh var.
+    llvm_execute_func [llvm_term w]; //Symbollically execute the function.
+    llvm_return (llvm_term {{ rotWord32 w }}); //Ensure the return value matches the cryptol spec.
+    //llvm_return (llvm_term {{join (rotWord (split w))}}); //How this normally would be done.
+};
+
+thm_rot_word <- llvm_verify m "rot_word" [] true rot_word_setup z3;
+
+print "rot_word: C <-> Cryptol";

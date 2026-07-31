@@ -1,0 +1,56 @@
+module Swap where
+
+/**
+ * Cryptol doesn't have a "pointer" concept.
+ * This takes a tuple and swaps the first
+ * and second element.
+ *
+ * Note that we used the same type for both
+ * tuple elements...we could have used a
+ * sequence if we felt like it.
+ */
+swap: {a} () => (a, a) -> (a, a)
+swap (x, y) = (y, x)
+
+/**
+ * Here is another notion of "swap"...swapping
+ * the positions of two elements of a sequence
+ * by index.
+ */
+swapIJ: {n, a} () => [n]a -> Integer -> Integer -> [n]a
+swapIJ sequence i j = sequence'
+    where
+        // hint: `:help generate`
+        // this is a fairly wacky way
+        // to write this specification.
+        // however, it is "fancy" in
+        // the sense that it even works
+        // on "infinite" (lazy) sequences...
+        sequence' @ k = if k == i
+                        then sequence @ j
+                        else if k == j
+                        then sequence @ i
+                        else sequence @ k
+
+/**
+ * ```
+ * :check example0
+ * ```
+ */
+property example0 = swapIJ `{4, Bit} 0b1110 0 3 == 0b0111
+
+/**
+ * What seqeunce is this?
+ *
+ * hint: `:h iterate`
+ *
+ * hint: the syntax (\param0 -> _stuff_)
+ * is the syntax for an anonymous function of
+ * one parameter, akin to a C++ "lambda expression".
+ */
+mySequence = iterate (\x -> x + 1) (0 : Integer)
+
+/**
+ * This should look like `mySequence` for a while...
+ */
+mySequence' = swapIJ mySequence 42 1000

@@ -91,9 +91,11 @@ let setup_swapIJ n = do {
 
     llvm_execute_func [xsp, llvm_term i, llvm_term j];
 
-    let zs = {{ specification::swapIJ xs (toInteger i) (toInteger j) }};
+    let zs = {{ specification::swapIJ xs i j }};
 
     llvm_points_to xsp (llvm_term zs);
 };
+
+// How "big" of an array is this proof for?
 
 theorem_swapIJ <- llvm_verify implementation "swapIJ" [] true (setup_swapIJ 12) z3;

@@ -17,15 +17,18 @@ swap (x, y) = (y, x)
  * the positions of two elements of a sequence
  * by index.
  */
-swapIJ: {n, a} () => [n]a -> Integer -> Integer -> [n]a
+swapIJ:
+    {n, a, ix}
+    (Integral ix, Eq ix, LiteralLessThan n ix)
+    => [n]a -> ix -> ix -> [n]a
 swapIJ sequence i j = sequence'
     where
         // hint: `:help generate`
         // this is a fairly wacky way
         // to write this specification.
-        // however, it is "fancy" in
-        // the sense that it even works
-        // on "infinite" (lazy) sequences...
+        // if `ix` is set to `Integer`,
+        // though, this works on "infinite"
+        // (lazy) sequences.
         sequence' @ k = if k == i
                         then sequence @ j
                         else if k == j
@@ -52,5 +55,10 @@ mySequence = iterate (\x -> x + 1) (0 : Integer)
 
 /**
  * This should look like `mySequence` for a while...
+ *
+ * What is `mySequence' @ 1000`?
+ * What is `mySequence' @ 42`?
+ *
+ * Can I put any non-negative index into `mySequence'`?
  */
 mySequence' = swapIJ mySequence 42 1000

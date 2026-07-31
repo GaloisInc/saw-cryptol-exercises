@@ -1,0 +1,99 @@
+// SAW script tying together swap.c and Swap.cry.
+
+import "Swap.cry" as specification;
+implementation <- llvm_load_module "swap.bc";
+
+let setup_swap = do {
+    // Before we call llvm_execute_func,
+    // we let SAW know what the memory state
+    // of the program "looks like". The way
+    // that we have written the setup,
+    // what kinds of `swap` calls have we
+    // ruled out?
+
+    // my integers
+    x <- llvm_fresh_var "x" (llvm_int 32);
+    y <- llvm_fresh_var "y" (llvm_int 32);
+
+    // my pointers
+    xp <- llvm_alloc (llvm_int 32);
+    yp <- llvm_alloc (llvm_int 32);
+
+    // my assertions about my pointers and integers
+    //
+    // why do I need llvm_term here?
+    //
+    // informal: cryptol doesn't have "pointers",
+    // but the fresh variables are "cryptol variables".
+    llvm_points_to xp (llvm_term x);
+    llvm_points_to yp (llvm_term y);
+
+    // in some previous examples, we've thrown llvm_term
+    // on to the front of our list elements...why don't we do that
+    // here?
+    //
+    // hint: :h llvm_fresh_var
+    // hint: :h llvm_term
+    // hint: :h llvm_execute_func
+    llvm_execute_func [xp, yp];
+
+    // when llvm_points_to shows up _after_
+    // llvm_execute_func, it is still an
+    // assertion...but instead of SAW taking it
+    // as an _assumption_ about the state of the
+    // world (a _precondition_) it takes it as a
+    // proof obligation (a _postcondition_).
+    //
+    // hint: :h llvm_points_to
+    llvm_points_to xp (llvm_term y);
+    llvm_points_to yp (llvm_term x);
+
+    // if we wanted to show equivalence to the Cryptol
+    // spec modulo pointer types, we could further assert
+    // x and y take the values the spec says they should,
+    // instead of just saying y and x directly.
+    //
+    // what are these cryptol terms saying?
+
+    let z = {{ specification::swap (x, y) }};
+
+    llvm_points_to xp (llvm_term {{ z.0 }} );
+    llvm_points_to yp (llvm_term {{ z.1 }} );
+};
+
+// why do I sometimes use arrows (name <- thing) and sometimes
+// use "let name = thing" to "make declarations"? Ask in lab!
+theorem_swap <- llvm_verify implementation "swap" [] true setup_swap z3;
+
+// Look! This takes a parameter `n`.
+let setup_swapIJ n = do {
+    // Likewise, we rule out certain kinds of
+    // swapIJ calls.
+
+    // my sequence and indices
+    //
+    // hint: the length of the array is `n`.
+    xs <- llvm_fresh_var "xs" (llvm_array n (llvm_int 32));
+    i <- llvm_fresh_var "i" (llvm_int 32);
+    j <- llvm_fresh_var "j" (llvm_int 32);
+
+    // my pointer
+    xsp <- llvm_alloc (llvm_array n (llvm_int 32));
+
+    // my assertions about my pointer and indices
+    // note the preconditions on the indices i and j.
+    // what happens if the length of the array is zero?
+    // is that precondition satisfiable? what does this
+    // mean?
+    llvm_points_to xsp (llvm_term xs);
+    llvm_precond {{ i < `n }};
+    llvm_precond {{ j < `n }};
+
+    llvm_execute_func [xsp, llvm_term i, llvm_term j];
+
+    let zs = {{ specification::swapIJ xs (toInteger i) (toInteger j) }};
+
+    llvm_points_to xsp (llvm_term zs);
+};
+
+theorem_swapIJ <- llvm_verify implementation "swapIJ" [] true (setup_swapIJ 12) z3;

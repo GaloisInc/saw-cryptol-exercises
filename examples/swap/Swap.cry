@@ -43,7 +43,7 @@ swapIJ sequence i j = sequence'
 property example0 = swapIJ `{4, Bit} 0b1110 0 3 == 0b0111
 
 /**
- * What seqeunce is this?
+ * What sequence is this?
  *
  * hint: `:h iterate`
  *

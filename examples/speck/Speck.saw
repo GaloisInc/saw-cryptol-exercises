@@ -1,0 +1,78 @@
+// Speck SAW verification.
+
+import "Speck128_256.cry" as CrySpeck;
+CSpeck <- llvm_load_module "Speck128_256.bc";
+
+// Some aliases.
+
+// An LLVM integer of 64 bits and allocation types.
+let uint64_t = llvm_int 64;
+let keyAlloc = llvm_array 4 uint64_t;
+let dataAlloc =  llvm_array 2 uint64_t;
+let expAlloc = llvm_array 34 uint64_t;
+
+let freshArray myType name = do {
+    x <- llvm_fresh_var name myType;
+    p <- llvm_alloc myType;
+    llvm_points_to p (llvm_term x);
+    return (x, p);
+};
+
+// The "expander" structure.
+let Expander = llvm_alias "struct.Expander";
+
+// Prove equivalence of the various "rotation" code
+// and the Cryptol spec.
+
+let Sa_setup = do {
+    x <- llvm_fresh_var "x" uint64_t;
+    llvm_execute_func [llvm_term x];
+    llvm_return (llvm_term {{ CrySpeck::Sα x }});
+};
+
+let Sb_setup = do {
+    x <- llvm_fresh_var "x" uint64_t;
+    llvm_execute_func [llvm_term x];
+    llvm_return (llvm_term {{ CrySpeck::Sβ x }});
+};
+
+let Sai_setup = do {
+    x <- llvm_fresh_var "x" uint64_t;
+    llvm_execute_func [llvm_term x];
+    llvm_return (llvm_term {{ CrySpeck::Sα_Inv x }});
+};
+
+let Sbi_setup = do {
+    x <- llvm_fresh_var "x" uint64_t;
+    llvm_execute_func [llvm_term x];
+    llvm_return (llvm_term {{ CrySpeck::Sβ_Inv x }});
+};
+
+Sa_theorem <- llvm_verify CSpeck "Sa" [] true Sa_setup z3;
+Sb_theorem <- llvm_verify CSpeck "Sb" [] true Sb_setup z3;
+Sai_theorem <- llvm_verify CSpeck "Sai" [] true Sai_setup z3;
+Sbi_theorem <- llvm_verify CSpeck "Sbi" [] true Sbi_setup z3;
+
+// Show the round function is equiavalent.
+let R_setup = do {
+    (pt, pt_ptr) <- freshArray dataAlloc "plaintext";
+    k <- llvm_fresh_var "k" uint64_t;
+    llvm_execute_func [llvm_term k, pt_ptr];
+    llvm_points_to pt_ptr (llvm_term {{ CrySpeck::R k pt }});
+};
+
+R_theorem <- llvm_verify CSpeck "R" [] true R_setup z3;
+
+// Key schedule is equivalent.
+
+let KS_setup = do {
+    (key, key_ptr) <- freshArray keyAlloc "key";
+    (expK, exp_ptr) <- freshArray expAlloc "expanded";
+    llvm_execute_func [key_ptr, exp_ptr];
+    llvm_points_to exp_ptr (llvm_term {{ CrySpeck::keySchedule key }});
+};
+
+// This uses _overrides_. Try running this _without_ them.
+// What are they doing? Ask in lab!
+
+KS_theorem <- llvm_verify CSpeck "keyExpansion" [Sb_theorem, Sai_theorem] true KS_setup z3;

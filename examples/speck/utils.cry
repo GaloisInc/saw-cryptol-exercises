@@ -1,0 +1,34 @@
+/*
+
+General utility functions for use across implementations.
+
+@copyright Galois, Inc
+@copyright Amazon.com or its affiliates.
+
+@author Sean Weaver
+@author Nichole Schmanski <nls@galois.com>
+@author Rob Dockins
+@author Andrei Stefanescu
+@editor Ryan Scott <rscott@galois.com>
+@editor Rod Chapman <rodchap@amazon.com>
+
+*/
+module utils where
+
+/**
+ * Function composition, specialized to functions from `(a -> a)`.
+ * In particular, `(compose f g) x == g (f x)`.
+ */
+compose : {a} () => (a -> a) -> (a -> a) -> a -> a
+compose f g = \x -> g (f x)
+
+/**
+ * Composition of many functions from `(a -> a)`.
+ * In particular, `(composeMany [a, b, c]) x == c (b (a x))`.
+ */
+composeMany : {nf, a} () => [nf](a -> a) -> a -> a
+composeMany fcns
+    | nf == 0 => \x -> x
+    | nf == 1 => fcns@0
+    | nf == 2 => compose (fcns@0) (fcns@1)
+    | nf > 2  => compose (fcns@0) (composeMany (drop `{1} fcns))

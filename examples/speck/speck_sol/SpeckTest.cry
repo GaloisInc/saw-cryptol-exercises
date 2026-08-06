@@ -1,0 +1,9 @@
+module SpeckTest where
+
+import Speck128_256
+
+/**
+ * The key schedule formulations are equivalent.
+ */
+ksEq: [4][64] -> Bit
+property ksEq key = keySchedule key == keySchedule'' key

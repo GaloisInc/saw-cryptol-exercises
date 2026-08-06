@@ -11,7 +11,7 @@ let keyAlloc = llvm_array 4 uint64_t;
 let dataAlloc =  llvm_array 2 uint64_t;
 let expAlloc = llvm_array 34 uint64_t;
 
-let freshArray myType name = do {
+let freshPtrTo myType name = do {
     x <- llvm_fresh_var name myType;
     p <- llvm_alloc myType;
     llvm_points_to p (llvm_term x);

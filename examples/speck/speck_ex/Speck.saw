@@ -1,0 +1,61 @@
+// Speck SAW verification.
+
+import "Speck128_256.cry" as CrySpeck;
+CSpeck <- llvm_load_module "Speck128_256.bc";
+
+// Some aliases.
+
+// An LLVM integer of 64 bits and allocation types.
+let uint64_t = llvm_int 64;
+let keyAlloc = llvm_array 4 uint64_t;
+let dataAlloc =  llvm_array 2 uint64_t;
+let expAlloc = llvm_array 34 uint64_t;
+
+let freshArray myType name = do {
+    x <- llvm_fresh_var name myType;
+    p <- llvm_alloc myType;
+    llvm_points_to p (llvm_term x);
+    return (x, p);
+};
+
+
+// Prove equivalence of the various "rotation" code
+// and the Cryptol spec.
+
+let Sa_setup = do {
+    // TODO: Finish setup for proof of equivlance
+};
+
+let Sb_setup = do {
+    // TODO: Finish setup for proof of equivlance
+};
+
+let Sai_setup = do {
+    // TODO: Finish setup for proof of equivlance
+};
+
+let Sbi_setup = do {
+    // TODO: Finish setup for proof of equivlance
+};
+
+Sa_theorem <- llvm_verify CSpeck "Sa" [] true Sa_setup z3;
+//TODO: Finish theorems for Sb, Sai, Sbi
+
+
+// Show the round function is equiavalent.
+let R_setup = do {
+    // TODO: Finish setup for proof of equivlance
+};
+
+R_theorem <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true R_setup z3;
+
+// Key schedule is equivalent.
+
+let KS_setup = do {
+    // TODO: Finish setup for proof of equivlance
+};
+
+// This uses _overrides_. Try running this _without_ them.
+// What are they doing? Ask in lab!
+
+// TODO: Define KS_theorem (using appropriate overrides)

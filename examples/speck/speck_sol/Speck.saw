@@ -61,7 +61,7 @@ let R_setup = do {
     llvm_points_to pt_ptr (llvm_term {{ CrySpeck::R k pt }});
 };
 
-R_theorem <- llvm_verify CSpeck "R" [] true R_setup z3;
+R_theorem <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true R_setup z3;
 
 // Key schedule is equivalent.
 

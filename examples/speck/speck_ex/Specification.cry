@@ -55,7 +55,7 @@ parameter
  * Reference: [SPECK], Section 4.1
  */
 // TODO: Give type definition (replace *)
-// encrypt : * 
+// encrypt : *
 // TODO Finish implementation.
 encrypt key plaintext = undefined
 
@@ -100,7 +100,7 @@ private
      * The notation `S` is used because it appears in the specification.
      *
      * Reference: [SPECK], Section 4.1.
-     */ 
+     */
     S : {j} (fin j) => [n] -> [n]
     S x = x <<< `j
 
@@ -122,7 +122,7 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *) 
+    // TODO: Define proper type (replace *)
     // Sα: *
     // TODO: Implement function using numeric constraint guards
     Sα x = undefined
@@ -133,7 +133,7 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *) 
+    // TODO: Define proper type (replace *)
     // Sβ : *
     // TODO: Implement function using numeric constraint guards
     Sβ x = undefined
@@ -144,7 +144,7 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *) 
+    // TODO: Define proper type (replace *)
     // Sα_Inv : *
     // TODO: Implement function using numeric constraint guards
     Sα_Inv x = undefined
@@ -155,7 +155,7 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *) 
+    // TODO: Define proper type (replace *)
     // Sβ_Inv : *
     // TODO: Implement function using numeric constraint guards
     Sβ_Inv x = undefined
@@ -166,7 +166,7 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *) 
+    // TODO: Define proper type (replace *)
     // R : *
     // TODO: Implement function
     R k x y = undefined
@@ -176,7 +176,7 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *) 
+    // TODO: Define proper type (replace *)
     // R_Inv : *
     // TODO: Implement function
     R_Inv k x y = undefined
@@ -188,7 +188,7 @@ private
      * :prove RInvertible
      * ```
      */
-    property RInvertible k x = R_Inv k (R k x) == x
+    property RInvertible k x = undefined // R_Inv k (R k x) == x
 
     /**
      * `R` can be decomposed as two Feistel-like maps
@@ -230,7 +230,7 @@ private
      * :prove REquivalent
      * ```
      */
-    property REquivalent k s = Rf k s == R k s
+    property REquivalent k s = undefined // Rf k s == R k s
 
     /**
      * A refinement to allow for "online" generation of the key

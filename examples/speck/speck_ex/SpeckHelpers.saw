@@ -1,0 +1,17 @@
+// Some aliases.
+
+// these could be included, but they are re-written here
+// so they can be easily "typed" with :t
+
+// An LLVM integer of 64 bits and allocation types.
+let uint64_t = llvm_int 64;
+let keyAlloc = llvm_array 4 uint64_t;
+let dataAlloc =  llvm_array 2 uint64_t;
+let expAlloc = llvm_array 34 uint64_t;
+
+let freshArray myType name = do {
+    x <- llvm_fresh_var name myType;
+    p <- llvm_alloc myType;
+    llvm_points_to p (llvm_term x);
+    return (x, p);
+};

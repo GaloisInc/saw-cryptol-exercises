@@ -80,16 +80,52 @@ KS_theorem <- llvm_verify CSpeck "keyExpansion" [Sb_theorem, Sai_theorem] true K
 // Encrypt is equivalent.
 
 let encrypt_setup = do {
+    // Allocate space for the various function arguments.
     (key, key_ptr) <- freshPtrTo keyAlloc "key";
     (pt, pt_ptr) <- freshPtrTo dataAlloc "plaintext";
     (exp, expk) <- freshPtrTo expAlloc "keyexp";
+
+    // Execute the function.
     llvm_execute_func [key_ptr, pt_ptr, expk];
+
     // the "plaintext" pointer now points to the ciphertext
-    let key256 = {{ join key : [256] }}; // these aren't needed...join
-    let pt128 = {{ join pt : [128] }};
-    llvm_points_to pt_ptr (llvm_term {{ split `{2} (CrySpeck::encrypt (join (reverse key)) pt128) }});
+    //
+    // Notice two things:
+    //
+    // 1. The statement of equivalence is to a reverse key version
+    // of the specification.
+    //
+    // 2. The Cryptol fresh variables that have been allocated
+    // are sequences, but the `encrypt` function expects bitvectors.
+    // We use join to match types.
+    llvm_points_to pt_ptr (llvm_term {{ split `{2} (CrySpeck::encrypt (join (reverse key)) (join pt)) }});
 };
 
+// This uses a new proof technique, and it is easy to miss.
+// Notice instead of "z3" as the "ProofScript" argument, I use "unint_z3".
+//
+// The "unint_z3" there is short for "Z3 with uninterpreted functions".
+// Ask in lab about uninterpreted functions. Briefly:
+//
+// An uninterpreted function is interpreted by the solver (Z3) as a
+// abstract symbol that could have _any_ definition that the type signature
+// admits. For example, `R: [64] -> [2][64] -> [2][64]`. `R` has a "real"
+// definition, but as an uninterpreted function, we pretend that `R` is
+// a black box that splits out `[2][64]` when we give it a `[64]` and a `[2][64]`.
+//
+// The only restriction is that the solver assumes that `R` is referentially transparent.
+// This means that if the solver throws in the same inputs, it must get the same output.
+//
+// In this way, you can understand the combination of overrides and uninterpreted functions.
+//
+// 1. The overrides utilize our previous proofs to assert that the C key schedule and round function
+// compute the same function as the Cryptol key schedule and round function.
+//
+// 2. The uninterpreted function directive instructs the solver, informally speaking, to disregard
+// the particular definitions of the key schedule and round function.
+//
+// 3. Since the specification and implementation have the same "shape", the solver is just checking
+// that the inputs and outputs are being "piped along" in the same way.
 encrypt_theorem <- llvm_verify CSpeck "encrypt" [KS_theorem, R_theorem] true encrypt_setup (unint_z3 ["keySchedule", "R"]);
 
 let encryptR_setup = do {

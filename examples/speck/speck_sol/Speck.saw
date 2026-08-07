@@ -133,7 +133,17 @@ let encryptR_setup = do {
     (pt, pt_ptr) <- freshPtrTo dataAlloc "plaintext";
     llvm_execute_func [key_ptr, pt_ptr];
     // the "plaintext" pointer now points to the ciphertext
+    //
+    // Note: we do not require that caveat that the key
+    // is reversed now...this does match the specification
+    // after rejiggering the sequences to bitvectors.
     llvm_points_to pt_ptr (llvm_term {{ split `{2} (CrySpeck::encrypt (join key) (join pt)) }});
 };
 
+// Our previous theorem shows the entire C encrypt function is equiavalent to
+// the Cryptol encrypt function with the "reverse key" caveat. We can leverage
+// all of that work in this proof by now treating the entire encrypt function
+// as equiavalent and uninterpreting it. Then, the solver is just making sure
+// that we actually reverse the key correctly, and allocate enough space for
+// the expanded key.
 encryptR_theorem <- llvm_verify CSpeck "encryptR" [encrypt_theorem] true encryptR_setup (unint_z3 ["encrypt"]);

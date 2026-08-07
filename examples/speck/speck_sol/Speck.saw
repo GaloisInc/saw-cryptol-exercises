@@ -76,3 +76,18 @@ let KS_setup = do {
 // What are they doing? Ask in lab!
 
 KS_theorem <- llvm_verify CSpeck "keyExpansion" [Sb_theorem, Sai_theorem] true KS_setup z3;
+
+// Encrypt is equivalent.
+
+let encrypt_setup = do {
+    (key, key_ptr) <- freshPtrTo keyAlloc "key";
+    (pt, pt_ptr) <- freshPtrTo dataAlloc "plaintext";
+    (exp, expk) <- freshPtrTo expAlloc "keyexp";
+    llvm_execute_func [key_ptr, pt_ptr, expk];
+    // the "plaintext" pointer now points to the ciphertext
+    let key256 = {{ join key : [256] }}; // these aren't needed...join
+    let pt128 = {{ join pt : [128] }};
+    llvm_points_to pt_ptr (llvm_term {{ split `{2} (CrySpeck::encrypt (join (reverse key)) pt128) }});
+};
+
+encrypt_theorem <- llvm_verify CSpeck "encrypt" [KS_theorem, R_theorem] true encrypt_setup (unint_z3 ["keySchedule", "R"]);

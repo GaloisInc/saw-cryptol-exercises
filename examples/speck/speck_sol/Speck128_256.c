@@ -123,6 +123,20 @@ void encrypt(uint64_t* key, uint64_t* plaintext, uint64_t* expk) {
 }
 
 /**
+ * Computes one block of Speck encryption.
+ * This computes the key schedule each block
+ * but does not require a pre-allocatoion for the
+ * expanded key.
+ *
+ * This reverses the key like the Cryptol spec does.
+ */
+void encryptR(uint64_t* key, uint64_t* plaintext) {
+    uint64_t reverse_key[4] = {key[3], key[2], key[1], key[0]};
+    uint64_t expanded_key[34] = {0};
+    encrypt(reverse_key, plaintext, expanded_key);
+}
+
+/**
  * Compute Speck with online key schedule generation.
  */
 void encryptOnline(uint64_t* key, uint64_t* plaintext) {

@@ -91,3 +91,13 @@ let encrypt_setup = do {
 };
 
 encrypt_theorem <- llvm_verify CSpeck "encrypt" [KS_theorem, R_theorem] true encrypt_setup (unint_z3 ["keySchedule", "R"]);
+
+let encryptR_setup = do {
+    (key, key_ptr) <- freshPtrTo keyAlloc "key";
+    (pt, pt_ptr) <- freshPtrTo dataAlloc "plaintext";
+    llvm_execute_func [key_ptr, pt_ptr];
+    // the "plaintext" pointer now points to the ciphertext
+    llvm_points_to pt_ptr (llvm_term {{ split `{2} (CrySpeck::encrypt (join key) (join pt)) }});
+};
+
+encryptR_theorem <- llvm_verify CSpeck "encryptR" [encrypt_theorem] true encryptR_setup (unint_z3 ["encrypt"]);

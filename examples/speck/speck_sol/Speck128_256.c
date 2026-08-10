@@ -107,9 +107,39 @@ void keyExpansion(uint64_t* key, uint64_t* expanded_key) {
 }
 
 /**
+ * Compute one block of Speck encryption.
+ * This computes the key schedule each block.
+ * It also expects the space for the expanded key
+ * to be pre-allocated.
+ *
+ * Note: the Speck Cryptol specification reverses the key.
+ * This does not.
+ */
+void encrypt(uint64_t* key, uint64_t* plaintext, uint64_t* expk) {
+    keyExpansion(key, expk);
+    for (unsigned i = 0; i < 34; i++) {
+        R(expk[i], plaintext);
+    }
+}
+
+/**
+ * Computes one block of Speck encryption.
+ * This computes the key schedule each block
+ * but does not require a pre-allocatoion for the
+ * expanded key.
+ *
+ * This reverses the key like the Cryptol spec does.
+ */
+void encryptR(uint64_t* key, uint64_t* plaintext) {
+    uint64_t reverse_key[4] = {key[3], key[2], key[1], key[0]};
+    uint64_t expanded_key[34] = {0};
+    encrypt(reverse_key, plaintext, expanded_key);
+}
+
+/**
  * Compute Speck with online key schedule generation.
  */
-void encrypt(uint64_t* key, uint64_t* plaintext) {
+void encryptOnline(uint64_t* key, uint64_t* plaintext) {
     Expander e = initializeExpander(key);
     for (unsigned i = 0; i < 34; i++) {
         R(Rk(&e, i), plaintext);

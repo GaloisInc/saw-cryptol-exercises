@@ -111,10 +111,8 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *)
-    // S_Inv : *
-    // TODO: Implement function
-    S_Inv x = undefined
+    S_Inv : {j} (fin j) => [n] -> [n]
+    S_Inv x = x >>> `j
 
     /**
      * Left circular shift by the rotation constant α.
@@ -122,10 +120,9 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *)
-    // Sα: *
-    // TODO: Implement function using numeric constraint guards
-    Sα x = undefined
+    Sα: [n] -> [n]
+    Sα x | n == 16 => S `{7} x
+         | n >  16 => S `{8} x
 
     /**
      * Left circular shift by the rotation constant β.
@@ -133,10 +130,9 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *)
-    // Sβ : *
-    // TODO: Implement function using numeric constraint guards
-    Sβ x = undefined
+    Sβ : [n] -> [n]
+    Sβ x | n == 16 => S `{2} x
+         | n >  16 => S `{3} x
 
     /**
      * Right circular shift by the rotation constant α.
@@ -144,10 +140,9 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *)
-    // Sα_Inv : *
-    // TODO: Implement function using numeric constraint guards
-    Sα_Inv x = undefined
+    Sα_Inv : [n] -> [n]
+    Sα_Inv x | n == 16 => S_Inv `{7} x
+             | n >  16 => S_Inv `{8} x
 
     /**
      * Right circular shift by the rotation constant β.
@@ -155,10 +150,9 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *)
-    // Sβ_Inv : *
-    // TODO: Implement function using numeric constraint guards
-    Sβ_Inv x = undefined
+    Sβ_Inv : [n] -> [n]
+    Sβ_Inv x | n == 16 => S_Inv `{2} x
+             | n >  16 => S_Inv `{3} x
 
     /**
      * The Speck round function. This function is parameterized by a key.
@@ -166,10 +160,9 @@ private
      *
      * Reference: [SPECK], Section 4.1.
      */
-    // TODO: Define proper type (replace *)
-    // R : *
-    // TODO: Implement function
-    R k x y = undefined
+    R : [n] -> [n] -> [n] -> ([n], [n])
+    R k x y = [((Sα_Inv x) + y) ^ k, (Sβ y) ^ ((Sα_Inv x) + y) ^ k]
+
 
     /**
      * The inverse Speck round function.

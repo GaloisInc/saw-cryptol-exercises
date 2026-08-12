@@ -7,7 +7,7 @@
 
 module Speck128_256 = Specification where
 
-// TODO: Fill in with appropriate numbers.
-type n = undefined
-type m = undefined
-type T = undefined
+type n = 64
+type m = 4
+type T = 34
+

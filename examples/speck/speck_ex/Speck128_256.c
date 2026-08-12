@@ -49,7 +49,7 @@ uint64_t Sbi(uint64_t x) {
 /**
  * The Speck round function. The first
  * parameter is the round key. The second
- * parameter is the 4 word state array.
+ * parameter is the 2 word state array.
  */
 void R(uint64_t k, uint64_t* p) {
     uint64_t x = p[0];

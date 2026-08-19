@@ -57,13 +57,27 @@ Sbi_theorem <- llvm_verify CSpeck "Sbi" [] true Sbi_setup z3;
 
 // Show the round function is equiavalent.
 let R_setup = do {
-    (p, p_ptr) <- freshPtrTo dataAlloc "p";
-    k <- llvm_fresh_var "k" uint64_t;
-    llvm_execute_func [llvm_term k, p_ptr];
 
+    (p, p_ptr) <- freshPtrTo dataAlloc "p";
+
+    k <- llvm_fresh_var "k" uint64_t;
+
+    llvm_execute_func [llvm_term k, p_ptr];
+ 
     //Is what p_ptr is pointing to equal to the cryptol spec.
-    llvm_points_to p_ptr (llvm_term {{ CrySpeck::R k (p@0) (p@1) }});
+
+    // I am a tuple
+
+    let cryptolResult = {{ CrySpeck::R k (p@0) (p@1) }};
+
+    // let's turn into an array
+
+    let cryptolSequence = llvm_term {{ [cryptolResult.0, cryptolResult.1] }};
+ 
+    llvm_points_to p_ptr cryptolSequence;
+
 };
+ 
 
 R_theorem <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true R_setup z3;
 

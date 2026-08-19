@@ -80,8 +80,11 @@ decrypt key ciphertext = undefined
  * Reference: [Speck], Section 4.2.
  */
 // TODO: Give type definition (replace *)
-// keySchedule : *
-keySchedule K = undefined
+keySchedule : [m][n] -> [T][n]
+keySchedule K = ks
+    where
+        // write key K as (k0, l0, ... l_m-2)
+        [k0] # li = K
 
 
 private
@@ -161,7 +164,7 @@ private
      * Reference: [SPECK], Section 4.1.
      */
     R : [n] -> [n] -> [n] -> ([n], [n])
-    R k x y = [((Sα_Inv x) + y) ^ k, (Sβ y) ^ ((Sα_Inv x) + y) ^ k]
+    R k x y = (((Sα_Inv x) + y) ^ k, (Sβ y) ^ ((Sα_Inv x) + y) ^ k)
 
 
     /**
@@ -170,9 +173,8 @@ private
      * Reference: [SPECK], Section 4.1.
      */
     // TODO: Define proper type (replace *)
-    // R_Inv : *
-    // TODO: Implement function
-    R_Inv k x y = undefined
+    R_Inv : [n] -> [n] -> [n] -> ([n], [n])
+    R_Inv k x y = (Sα ((x ^ k) - Sβ_Inv (x ^ y)), Sβ_Inv (x ^ y))
 
     /**
      * `R_Inv` is the inverse of `R`.
@@ -181,7 +183,8 @@ private
      * :prove RInvertible
      * ```
      */
-    property RInvertible k x = undefined // R_Inv k (R k x) == x
+    property RInvertible k x y =  R_Inv k tuple.0 tuple.1 == (x,y)
+        where tuple = (R k x y)
 
     /**
      * `R` can be decomposed as two Feistel-like maps

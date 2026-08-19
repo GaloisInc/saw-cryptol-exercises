@@ -87,7 +87,11 @@ decrypt key ciphertext = join (Speck_k (split ciphertext))
  * Reference: [Speck], Section 4.2.
  */
 
-# let fibs = [0,1] # [ fibs@i + fibs@(i+1)   | i <- [0...]] 
+// let fibs = [0,1] # [ fibs@i + fibs@(i+1) | i <- [0...]] 
+// let fibs = [0]#(scanl (+) 1 fibs)
+// let fibPairs = [(0,1), (1,1)] # [ (y, x+y)  | (x,y)  <- fibPairs]
+// let first (x,_) = x
+// let fibs = map first fibPairs
 keySchedule : [m][n] -> [T][n]
 keySchedule K = ks
     where

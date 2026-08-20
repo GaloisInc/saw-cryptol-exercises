@@ -1,0 +1,198 @@
+/**
+ * Some iteration, focused on C-like examples.
+ *
+ * In particular, we consider a while loop that
+ * decrements a counter, and increments another
+ * value. This is a silly way to add two numbers.
+ */
+module Iter where
+
+/**
+ * Cryptol doesn't have loops, so
+ * we often express iteration recursively.
+ *
+ * int i = 10;
+ * int x = 0;
+ * while (i > 0) {x++; i--;}
+ *
+ * ```
+ * :check whileExample (10, 0) == (0, 10)
+ * ```
+ *
+ */
+whileExample: ([32], [32]) -> ([32], [32])
+whileExample (i, x) = if i > 0
+                   then whileExample ((i - 1), (x + 1))
+                   else (i, x)
+
+/**
+ * We can express this much more generically
+ * with higher order functions. Think of these
+ * like function pointers.
+ */
+whileGeneric: {a} () => (a -> a) -> (a -> Bit) -> a -> a
+whileGeneric updater condition current = if condition current
+                                         then next (updater current)
+                                         else current
+    where
+        next = whileGeneric updater condition
+
+/**
+ * The example is a particular instance
+ * of the generic computation.
+ *
+ * ```
+ * :check whileExamplesEq 10 0
+ * ```
+ */
+whileExamplesEq i x = whileExample (i, x) == while (i, x)
+    where
+        while = whileGeneric updater condition
+        updater = \(i, x) -> (i - 1, x + 1)
+        condition = \(i, _) -> (i > 0)
+
+/**
+ * This is a bit clunky. It's better if we can
+ * make the type system work for us; if we can
+ * figure out, as a type, how much iteration we
+ * have to do, things get a lot simpler.
+ *
+ * This is akin to a compiler figuring out how
+ * many times a loop gets run, and then unrolling
+ * it, at least in some ways.
+ *
+ * This particular example introduces "numeric constraint
+ * guards".
+ *
+ * ```
+ * :check whileExampleNCG `{10} 0 == 10
+ * ```
+ */
+whileExampleNCG: {i} (fin i) => [32] -> [32]
+whileExampleNCG x
+    | i == 0 => x
+    | i > 0 => 1 + whileExampleNCG `{i - 1} x
+
+/**
+ * This example uses `repeat`.
+ *
+ * ```
+ * :check whileExampleRepeat `{10} 0 == 10
+ * ```
+ */
+whileExampleRepeat : {i} (fin i) => [32] -> [32]
+whileExampleRepeat x = sum (repeat `{i} 1) + x
+
+/**
+ * This example uses a list comprehension.
+ * Notice the type constraint.
+ *
+ * ```
+ * :check whileExampleLC `{10} 0 == 10
+ * ```
+ */
+whileExampleLC : {i} (fin i, i > 0) => [32] -> [32]
+whileExampleLC x = x + sum [1 | _counter <- [0..i - 1]]
+
+/**
+ * This example combines list comprehensions
+ * and numeric constraint guards.
+ *
+ * ```
+ * :check whileExampleLC' `{10} 0 == 10
+ * ```
+ */
+whileExampleLC' : {i} (fin i) => [32] -> [32]
+whileExampleLC' x
+    | i == 0 => x
+    | i > 0 => whileExampleLC `{i} x
+
+/**
+ * This example uses `scanl`...read "left scan".
+ * This accumulates all the intermediate results
+ * of an iterated computation.
+ *
+ * ```
+ * :check whileExampleScan `{10} 0 == 10
+ * ```
+ */
+whileExampleScan: {i} (fin i) => [32] -> [32]
+whileExampleScan x = last computation
+    where
+        computation = scanl (+) x (repeat `{i} 1)
+
+/**
+ * This example uses `foldl`...read "left fold".
+ * This is like scan, but it just keeps the final
+ * answer.
+ *
+ * This is the most akin to a "for loop" that uses
+ * some index `i` witha constant bound.
+ *
+ * Fold allows us to avoid explicit indexing, though,
+ * and can use a parametric type, so it is a bit more general!
+ *
+ * ```
+ * :check whileExampleFold `{10} 0 == 10
+ * ```
+ */
+whileExampleFold: {i} (fin i) => [32] -> [32]
+whileExampleFold x = foldl (+) x (repeat `{i} 1)
+
+/**
+ * Because computation is lazy, we can "self-reference"
+ * in list comprehensions.
+ *
+ * Notice that the self-referential sequence is infinite.
+ * We just "take" the "right amount" of data to "loop".
+ *
+ * ```
+ * :check whileSelfRef `{10} 0 == 10
+ * ```
+ */
+whileSelfRef: {i} (fin i) => [32] -> [32]
+whileSelfRef x = xs @ `i
+    where
+        // this is a little confusing at first...
+        // I read this as:
+        //
+        // The sequence xs is equal to
+        // "xs = "
+        // the initial value x
+        // "[x]"
+        // followed by
+        // "#"
+        // the sequence 1 + x'
+        // where all x' are drawn
+        // from previous values of xs
+        // "[1 + x' | x' <- xs]"
+
+        xs = [x] # [1 + x' | x' <- xs]
+
+/**
+ * You can imagine this self-refernential sequence
+ * as "recursion machine" of sorts...this one only needs
+ * to remember the previous entry.
+ */
+recursionMachine: [32] -> [inf][32]
+recursionMachine x = iterate (\current -> current + 1) x
+
+/**
+ * The definition of when to "stop" the machine to "loop"
+ * some number of times is the same as the self-referential
+ * sequence way of thinking about it.
+ *
+ * ```
+ * :check whileMachine `{10} 0 == 10
+ * ```
+ */
+whileMachine: {i} (fin i) => [32] -> [32]
+whileMachine x = recursionMachine x @ `i
+
+/**
+ * As an exercise, you might consider how
+ * you would type and implement a "for loop"
+ * in Cryptol, even if some situations present
+ * more ergonomic alternatives.
+ */
+forLoop = undefined

@@ -79,12 +79,15 @@ decrypt key ciphertext = undefined
  *
  * Reference: [Speck], Section 4.2.
  */
-// TODO: Give type definition (replace *)
 keySchedule : [m][n] -> [T][n]
 keySchedule K = ks
     where
         // write key K as (k0, l0, ... l_m-2)
         [k0] # li = K
+        // define mutual recursion of sequences ki and li
+        ks = [k0] # [Sβ (ks @ i) ^ (ls @ (i + `m - 1)) | i <- [0..T - 2]]
+        ls = li # [(k + Sα_Inv (ls @ i)) ^ i | k <- ks | i <- [0..T - 2] ]
+
 
 
 private

@@ -81,13 +81,18 @@ let R_setup = do {
 
 R_theorem <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true R_setup z3;
 
-// // Key schedule is equivalent.
+// Key schedule is equivalent.
 
-// let KS_setup = do {
-//     // TODO: Finish setup for proof of equivlance
-// };
+let KS_setup = do {
+    (key, keyPtr) <- freshPtrTo keyAlloc "key";
+    (_, expPtr) <- freshPtrTo expAlloc "expansion";
+    llvm_execute_func[keyPtr, expPtr];
+    let result = {{CrySpeck::keySchedule key}};
+    llvm_points_to expPtr (llvm_term result);
+};
 
 // This uses _overrides_. Try running this _without_ them.
 // What are they doing? Ask in lab!
 
 // TODO: Define KS_theorem (using appropriate overrides)
+KS_theorem <- llvm_verify CSpeck "keyExpansion" [Sb_theorem, Sai_theorem] true KS_setup z3;

@@ -54,10 +54,18 @@ parameter
  *
  * Reference: [SPECK], Section 4.1
  */
-// TODO: Give type definition (replace *)
-// encrypt : *
-// TODO Finish implementation.
-encrypt key plaintext = undefined
+encrypt : [m][n] -> [n] -> [n] -> ([n],[n])
+encrypt key x y = composeRfs Rks x y
+    where
+        Rks = map R (keySchedule (reverse key))
+
+composeRfs : {i} (fin n) => [i]([n] -> [n] -> ([n],[n])) -> [n] -> [n] -> ([n],[n])
+composeRfs funcs x y 
+    | i == 0 => (x,y)
+    | i > 0 => composeRfs (drop`{1} funcs) result.0 result.1
+        where
+            result = (funcs @ 0) x y
+
 
 /**
  * The Speck decryption function is the inverse of the encryption function.
@@ -169,6 +177,10 @@ private
     R : [n] -> [n] -> [n] -> ([n], [n])
     R k x y = (((Sα_Inv x) + y) ^ k, (Sβ y) ^ ((Sα_Inv x) + y) ^ k)
 
+
+    RSeq : [n] -> [2][n] -> [2][n]
+    RSeq k [x,y] = [result.0, result.1] where
+        result = R k x y
 
     /**
      * The inverse Speck round function.

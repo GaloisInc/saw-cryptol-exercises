@@ -81,6 +81,22 @@ let R_setup = do {
 
 R_theorem <- time(llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true R_setup z3);
 
+// Sequence-form spec for R, matching the shape `encryptSeq` composes over.
+let RSeq_setup = do {
+    (p, p_ptr) <- freshPtrTo dataAlloc "p";
+    k <- llvm_fresh_var "k" uint64_t;
+    llvm_execute_func [llvm_term k, p_ptr];
+    llvm_points_to p_ptr (llvm_term {{ CrySpeck::RSeq k p }});
+};
+
+RSeq_theorem <- time(llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true RSeq_setup z3);
+
+// Cryptol-level equivalence between the sequence form and the tuple form.
+RSeq_R_equiv <- time(prove_print z3
+    {{ \(k : [64]) (xy : [2][64]) ->
+         CrySpeck::RSeq k xy ==
+           [(CrySpeck::R k (xy@0) (xy@1)).0, (CrySpeck::R k (xy@0) (xy@1)).1] }});
+
 // Key schedule is equivalent.
 
 let KS_setup = do {
@@ -98,13 +114,18 @@ let KS_setup = do {
 KS_theorem <- time(llvm_verify CSpeck "keyExpansion" [Sb_theorem, Sai_theorem] true KS_setup z3);
 
 
+Encrypt_equiv <- time(prove_print z3 {{CrySpeck::encryptEquivSeq}});
+
+
+
+
 let Encrypt_setup = do {
     (key, keyPtr) <- freshPtrTo keyAlloc "key";
     (pt, ptPtr) <- freshPtrTo dataAlloc "pt";
-    llvm_execute_func[keyPtr, ptPtr];
-    let result = {{CrySpeck::encrypt key pt}};
-    llvm_points_to ptPtr (llvm_term result);
-
+    (_, expkPtr) <- freshPtrTo expAlloc "expk";
+    llvm_execute_func[keyPtr, ptPtr, expkPtr];
+    let cryptolResult = {{ CrySpeck::encryptSeq (reverse key) pt }};
+    llvm_points_to ptPtr (llvm_term cryptolResult);
 };
 
-Encrypt_theorem <- time(llvm_verify CSpeck "encrypt" [KS_theorem] true Encrypt_setup z3);
+ Encrypt_theorem <- time(llvm_verify CSpeck "encrypt" [KS_theorem, R_theorem] true Encrypt_setup (w4_unint_z3["keySchedule","RSeq"]));

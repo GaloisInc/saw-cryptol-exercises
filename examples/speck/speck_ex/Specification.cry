@@ -54,6 +54,7 @@ parameter
  *
  * Reference: [SPECK], Section 4.1
  */
+ // [m][n] -> [2][n] -> [2][n]
 encrypt : [m][n] -> [n] -> [n] -> ([n],[n])
 encrypt key x y = composeRfs Rks x y
     where
@@ -66,6 +67,15 @@ composeRfs funcs x y
         where
             result = (funcs @ 0) x y
 
+encryptSeq : [m][n] -> [2][n] -> [2][n]
+encryptSeq key pt = composeMany Rks pt
+    where
+        Rks = map RSeq (keySchedule (reverse key))
+
+
+encryptEquivSeq : [m][n] -> [n] -> [n] -> Bit
+encryptEquivSeq key x y = encryptSeq key [x,y] == [result.0, result.1]
+    where result = encrypt key x y
 
 /**
  * The Speck decryption function is the inverse of the encryption function.

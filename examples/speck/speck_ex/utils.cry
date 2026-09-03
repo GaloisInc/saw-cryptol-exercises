@@ -26,9 +26,7 @@ compose f g = \x -> g (f x)
  * Composition of many functions from `(a -> a)`.
  * In particular, `(composeMany [a, b, c]) x == c (b (a x))`.
  */
-composeMany : {nf, a} () => [nf](a -> a) -> a -> a
+composeMany : {nf, a} (nf > 0) => [nf](a -> a) -> a -> a
 composeMany fcns
-    | nf == 0 => \x -> x
     | nf == 1 => fcns@0
-    | nf == 2 => compose (fcns@0) (fcns@1)
-    | nf > 2  => compose (fcns@0) (composeMany (drop `{1} fcns))
+    | nf > 1  => compose (fcns@0) (composeMany (drop `{1} fcns))

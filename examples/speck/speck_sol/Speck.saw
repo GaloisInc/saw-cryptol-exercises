@@ -53,7 +53,7 @@ Sb_theorem <- llvm_verify CSpeck "Sb" [] true Sb_setup z3;
 Sai_theorem <- llvm_verify CSpeck "Sai" [] true Sai_setup z3;
 Sbi_theorem <- llvm_verify CSpeck "Sbi" [] true Sbi_setup z3;
 
-// Show the round function is equiavalent.
+// Show the round function is equivalent.
 let R_setup = do {
     (pt, pt_ptr) <- freshPtrTo dataAlloc "plaintext";
     k <- llvm_fresh_var "k" uint64_t;
@@ -164,10 +164,10 @@ let encryptR_setup = do {
     llvm_points_to pt_ptr (llvm_term {{ split `{2} (CrySpeck::encrypt (join key) (join pt)) }});
 };
 
-// Our previous theorem shows the entire C encrypt function is equiavalent to
+// Our previous theorem shows the entire C encrypt function is equivalent to
 // the Cryptol encrypt function with the "reverse key" caveat. We can leverage
 // all of that work in this proof by now treating the entire encrypt function
-// as equiavalent and uninterpreting it. Then, the solver is just making sure
+// as equivalent and uninterpreting it. Then, the solver is just making sure
 // that we actually reverse the key correctly, and allocate enough space for
 // the expanded key.
 encryptR_theorem <- llvm_verify CSpeck "encryptR" [encrypt_theorem] true encryptR_setup (unint_z3 ["encrypt"]);

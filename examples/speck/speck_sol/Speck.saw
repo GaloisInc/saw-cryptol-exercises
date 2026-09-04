@@ -150,7 +150,7 @@ let encrypt_setup = do {
 //
 // 3. Since the specification and implementation have the same "shape", the solver is just checking
 // that the inputs and outputs are being "piped along" in the same way.
-encrypt_theorem <- llvm_verify CSpeck "encrypt" [KS_theorem, R_theorem] true encrypt_setup (unint_z3 ["R"]);
+encrypt_theorem <- llvm_verify CSpeck "encrypt" [R_theorem] true encrypt_setup (unint_z3 ["R"]);
 
 let encryptR_setup = do {
     (key, key_ptr) <- freshPtrTo keyAlloc "key";

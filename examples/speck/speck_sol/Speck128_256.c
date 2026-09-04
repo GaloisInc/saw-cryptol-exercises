@@ -147,7 +147,7 @@ void encrypt(uint64_t* key, uint64_t* plaintext, uint64_t* expk) {
 void decrypt(uint64_t* key, uint64_t* buf, uint64_t* expk) {
     keyExpansion(key, expk);
     for (unsigned i = 0; i < 34; i++) {
-        R_Inv(expk[i], buf);
+        R_Inv(expk[33 - i], buf);
     }
 }
 

@@ -79,13 +79,13 @@ let UnifiedR_setup term = do {
 };
 
 // here we prove the R and R inverse theorems.
-R_theorem <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true R_setup z3;
-R_Inv_theorem <- llvm_verify CSpeck "R_Inv" [Sa_theorem, Sbi_theorem] true R_Inv_setup z3;
+R_theorem <- llvm_verify CSpeck "R" [] true R_setup z3;
+R_Inv_theorem <- llvm_verify CSpeck "R_Inv" [] true R_Inv_setup z3;
 
 // we can also use the unified setup.
 // your mileage may vary on whether it is more or less readable.
-R_theorem' <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true (UnifiedR_setup {{CrySpeck::R}}) z3;
-R_Inv_theorem' <- llvm_verify CSpeck "R_Inv" [Sai_theorem, Sb_theorem] true (UnifiedR_setup {{CrySpeck::R_Inv}}) z3;
+R_theorem' <- llvm_verify CSpeck "R" [] true (UnifiedR_setup {{CrySpeck::R}}) z3;
+R_Inv_theorem' <- llvm_verify CSpeck "R_Inv" [] true (UnifiedR_setup {{CrySpeck::R_Inv}}) z3;
 
 // Key schedule is equivalent.
 

@@ -61,7 +61,31 @@ let R_setup = do {
     llvm_points_to pt_ptr (llvm_term {{ CrySpeck::R k pt }});
 };
 
+// The inverse round function setup is almost identical to R.
+// Only the names and the "cryptol term" that we are proving equivalence
+// to change.
+let R_Inv_setup = do {
+    (ct, ct_ptr) <- freshPtrTo dataAlloc "ciphertext";
+    k <- llvm_fresh_var "k" uint64_t;
+    llvm_execute_func [llvm_term k, ct_ptr];
+    llvm_points_to ct_ptr (llvm_term {{ CrySpeck::R_Inv k ct }});
+};
+
+let UnifiedR_setup term = do {
+    (data, data_ptr) <- freshPtrTo dataAlloc "data";
+    k <- llvm_fresh_var "k" uint64_t;
+    llvm_execute_func [llvm_term k, data_ptr];
+    llvm_points_to data_ptr (llvm_term {{ term k data }});
+};
+
+// here we prove the R and R inverse theorems.
 R_theorem <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true R_setup z3;
+R_Inv_theorem <- llvm_verify CSpeck "R_Inv" [Sa_theorem, Sbi_theorem] true R_Inv_setup z3;
+
+// we can also use the unified setup.
+// your mileage may vary on whether it is more or less readable.
+R_theorem' <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true (UnifiedR_setup {{CrySpeck::R}}) z3;
+R_Inv_theorem' <- llvm_verify CSpeck "R_Inv" [Sai_theorem, Sb_theorem] true (UnifiedR_setup {{CrySpeck::R_Inv}}) z3;
 
 // Key schedule is equivalent.
 

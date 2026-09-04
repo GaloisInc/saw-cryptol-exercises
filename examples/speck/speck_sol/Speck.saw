@@ -171,3 +171,22 @@ let encryptR_setup = do {
 // that we actually reverse the key correctly, and allocate enough space for
 // the expanded key.
 encryptR_theorem <- llvm_verify CSpeck "encryptR" [encrypt_theorem] true encryptR_setup (unint_z3 ["encrypt"]);
+
+
+// Decrypt is equivalent.
+
+let decrypt_setup = do {
+    // Allocate space for the various function arguments.
+    (key, key_ptr) <- freshPtrTo keyAlloc "key";
+    (ct, ct_ptr) <- freshPtrTo dataAlloc "ciphertext";
+    (exp, expk) <- freshPtrTo expAlloc "keyexp";
+
+    // Execute the function.
+    llvm_execute_func [key_ptr, ct_ptr, expk];
+
+    // the "ciphertext" pointer now points to the ciphertext
+    // like encrypt, this is a "reverse key" version.
+    llvm_points_to ct_ptr (llvm_term {{ split `{2} (CrySpeck::decrypt (join (reverse key)) (join ct)) }});
+};
+
+decrypt_theorem <- llvm_verify CSpeck "decrypt" [R_Inv_theorem] true decrypt_setup (unint_z3 ["R_Inv"]);

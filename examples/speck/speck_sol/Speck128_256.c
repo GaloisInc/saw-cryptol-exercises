@@ -49,13 +49,26 @@ uint64_t Sbi(uint64_t x) {
 /**
  * The Speck round function. The first
  * parameter is the round key. The second
- * parameter is the 4 word state array.
+ * parameter is the 2 word state array.
  */
 void R(uint64_t k, uint64_t* p) {
     uint64_t x = p[0];
     uint64_t y = p[1];
     p[0] = (Sai(x) + y) ^ k;
     p[1] = Sb(y) ^ (Sai(x) + y) ^ k;
+}
+
+/**
+ * The inverse round function for Speck.
+ * The first parameter is the round key.
+ * The second parameter is the 2 word
+ * state array.
+ */
+void R_Inv(uint64_t k, uint64_t* p) {
+    uint64_t x = p[0];
+    uint64_t y = p[1];
+    p[0] = Sa( (x ^ k) - Sbi(x ^ y) );
+    p[1] = Sbi(x ^ y);
 }
 
 /**
@@ -119,6 +132,22 @@ void encrypt(uint64_t* key, uint64_t* plaintext, uint64_t* expk) {
     keyExpansion(key, expk);
     for (unsigned i = 0; i < 34; i++) {
         R(expk[i], plaintext);
+    }
+}
+
+/**
+ * Compute one block of Speck decryption.
+ * This computes the key schedule each block.
+ * It also expects the space for the expanded key
+ * to be pre-allocated.
+ *
+ * Note: the Speck Cryptol specification reverses the key.
+ * This does not.
+ */
+void decrypt(uint64_t* key, uint64_t* buf, uint64_t* expk) {
+    keyExpansion(key, expk);
+    for (unsigned i = 0; i < 34; i++) {
+        R_Inv(expk[33 - i], buf);
     }
 }
 

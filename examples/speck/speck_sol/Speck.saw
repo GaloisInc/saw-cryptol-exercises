@@ -53,7 +53,7 @@ Sb_theorem <- llvm_verify CSpeck "Sb" [] true Sb_setup z3;
 Sai_theorem <- llvm_verify CSpeck "Sai" [] true Sai_setup z3;
 Sbi_theorem <- llvm_verify CSpeck "Sbi" [] true Sbi_setup z3;
 
-// Show the round function is equiavalent.
+// Show the round function is equivalent.
 let R_setup = do {
     (pt, pt_ptr) <- freshPtrTo dataAlloc "plaintext";
     k <- llvm_fresh_var "k" uint64_t;
@@ -61,7 +61,44 @@ let R_setup = do {
     llvm_points_to pt_ptr (llvm_term {{ CrySpeck::R k pt }});
 };
 
-R_theorem <- llvm_verify CSpeck "R" [Sai_theorem, Sb_theorem] true R_setup z3;
+// The inverse round function setup is almost identical to R.
+// Only the names and the "cryptol term" that we are proving equivalence
+// to change.
+let R_Inv_setup = do {
+    (ct, ct_ptr) <- freshPtrTo dataAlloc "ciphertext";
+    k <- llvm_fresh_var "k" uint64_t;
+    llvm_execute_func [llvm_term k, ct_ptr];
+    llvm_points_to ct_ptr (llvm_term {{ CrySpeck::R_Inv k ct }});
+};
+
+// Here, we prove the R and R inverse theorems.
+R_theorem <- llvm_verify CSpeck "R" [] true R_setup z3;
+R_Inv_theorem <- llvm_verify CSpeck "R_Inv" [] true R_Inv_setup z3;
+
+// Except for the choice of function to compare with in the final
+// assertion, the specifications of R and R_Inv as "setups" are
+// the same. We _can_ refactor the setup so that it takes a term
+// argument, in this case, the function R or R_Inv. The point of this
+// is to reduce "boilerplate" code and promote "specification re-use".
+//
+// SAW infers the type of the positional argument 'term'.
+// Check this definition out in the REPL.
+let UnifiedR_setup term = do {
+    (data, data_ptr) <- freshPtrTo dataAlloc "data";
+    k <- llvm_fresh_var "k" uint64_t;
+    llvm_execute_func [llvm_term k, data_ptr];
+    llvm_points_to data_ptr (llvm_term {{ term k data }});
+};
+
+// We can also use the unified setup.
+//
+// Your mileage may vary on whether it is more or less readable than
+// choosing to write a setup for each function. In general, we prefer
+// to write setups for each function, but there can be cases where the
+// specification is parameterized on something like an array length
+// where generalizing the setup is desirable.
+R_theorem' <- llvm_verify CSpeck "R" [] true (UnifiedR_setup {{CrySpeck::R}}) z3;
+R_Inv_theorem' <- llvm_verify CSpeck "R_Inv" [] true (UnifiedR_setup {{CrySpeck::R_Inv}}) z3;
 
 // Key schedule is equivalent.
 
@@ -126,7 +163,7 @@ let encrypt_setup = do {
 //
 // 3. Since the specification and implementation have the same "shape", the solver is just checking
 // that the inputs and outputs are being "piped along" in the same way.
-encrypt_theorem <- llvm_verify CSpeck "encrypt" [KS_theorem, R_theorem] true encrypt_setup (unint_z3 ["keySchedule", "R"]);
+encrypt_theorem <- llvm_verify CSpeck "encrypt" [R_theorem] true encrypt_setup (unint_z3 ["R"]);
 
 let encryptR_setup = do {
     (key, key_ptr) <- freshPtrTo keyAlloc "key";
@@ -140,10 +177,29 @@ let encryptR_setup = do {
     llvm_points_to pt_ptr (llvm_term {{ split `{2} (CrySpeck::encrypt (join key) (join pt)) }});
 };
 
-// Our previous theorem shows the entire C encrypt function is equiavalent to
+// Our previous theorem shows the entire C encrypt function is equivalent to
 // the Cryptol encrypt function with the "reverse key" caveat. We can leverage
 // all of that work in this proof by now treating the entire encrypt function
-// as equiavalent and uninterpreting it. Then, the solver is just making sure
+// as equivalent and uninterpreting it. Then, the solver is just making sure
 // that we actually reverse the key correctly, and allocate enough space for
 // the expanded key.
 encryptR_theorem <- llvm_verify CSpeck "encryptR" [encrypt_theorem] true encryptR_setup (unint_z3 ["encrypt"]);
+
+
+// Decrypt is equivalent.
+
+let decrypt_setup = do {
+    // Allocate space for the various function arguments.
+    (key, key_ptr) <- freshPtrTo keyAlloc "key";
+    (ct, ct_ptr) <- freshPtrTo dataAlloc "ciphertext";
+    (exp, expk) <- freshPtrTo expAlloc "keyexp";
+
+    // Execute the function.
+    llvm_execute_func [key_ptr, ct_ptr, expk];
+
+    // the "ciphertext" pointer now points to the ciphertext
+    // like encrypt, this is a "reverse key" version.
+    llvm_points_to ct_ptr (llvm_term {{ split `{2} (CrySpeck::decrypt (join (reverse key)) (join ct)) }});
+};
+
+decrypt_theorem <- llvm_verify CSpeck "decrypt" [R_Inv_theorem] true decrypt_setup (unint_z3 ["R_Inv"]);

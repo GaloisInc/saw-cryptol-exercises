@@ -128,4 +128,4 @@ let Encrypt_setup = do {
     llvm_points_to ptPtr (llvm_term cryptolResult);
 };
 
- Encrypt_theorem <- time(llvm_verify CSpeck "encrypt" [KS_theorem, R_theorem] true Encrypt_setup (w4_unint_z3["keySchedule","RSeq"]));
+ Encrypt_theorem <- time(llvm_verify CSpeck "encrypt" [KS_theorem, RSeq_theorem] true Encrypt_setup (w4_unint_z3["keySchedule","RSeq"]));

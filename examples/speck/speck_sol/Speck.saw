@@ -71,6 +71,18 @@ let R_Inv_setup = do {
     llvm_points_to ct_ptr (llvm_term {{ CrySpeck::R_Inv k ct }});
 };
 
+// Here, we prove the R and R inverse theorems.
+R_theorem <- llvm_verify CSpeck "R" [] true R_setup z3;
+R_Inv_theorem <- llvm_verify CSpeck "R_Inv" [] true R_Inv_setup z3;
+
+// Except for the choice of function to compare with in the final
+// assertion, the specifications of R and R_Inv as "setups" are
+// the same. We _can_ refactor the setup so that it takes a term
+// argument, in this case, the function R or R_Inv. The point of this
+// is to reduce "boilerplate" code and promote "specification re-use".
+//
+// SAW infers the type of the positional argument 'term'.
+// Check this definition out in the REPL.
 let UnifiedR_setup term = do {
     (data, data_ptr) <- freshPtrTo dataAlloc "data";
     k <- llvm_fresh_var "k" uint64_t;
@@ -78,12 +90,13 @@ let UnifiedR_setup term = do {
     llvm_points_to data_ptr (llvm_term {{ term k data }});
 };
 
-// here we prove the R and R inverse theorems.
-R_theorem <- llvm_verify CSpeck "R" [] true R_setup z3;
-R_Inv_theorem <- llvm_verify CSpeck "R_Inv" [] true R_Inv_setup z3;
-
-// we can also use the unified setup.
-// your mileage may vary on whether it is more or less readable.
+// We can also use the unified setup.
+//
+// Your mileage may vary on whether it is more or less readable than
+// choosing to write a setup for each function. In general, we prefer
+// to write setups for each function, but there can be cases where the
+// specification is parameterized on something like an array length
+// where generalizing the setup is desirable.
 R_theorem' <- llvm_verify CSpeck "R" [] true (UnifiedR_setup {{CrySpeck::R}}) z3;
 R_Inv_theorem' <- llvm_verify CSpeck "R_Inv" [] true (UnifiedR_setup {{CrySpeck::R_Inv}}) z3;
 

@@ -1,5 +1,7 @@
 module CTR where
 
+import Primitive::Symmetric::Cipher::Block::AES::Instantiations::AES256 as AES
+
 /**
  * Here, we say a cipher takes some
  * some k-bit key and operates on a
@@ -93,3 +95,37 @@ ctrMany' ctx data
             (ctx', e) = ctrOne' ctx (head data)
             // process the rest of the blocks with the new context.
             (ctx'', es) = ctrMany' ctx' (tail data)
+
+/**
+ * We actually use the same cipher to decrypt!
+ */
+ctrInvertible:
+    {n, k, w}
+    (fin k, fin w, w >= 1, fin n)
+    => Cipher k w -> [k] -> [n][w] -> Bit
+ctrInvertible cipher key blocks = ctrDec == blocks
+    where
+        ctx0 = (cipher, key, zero)
+        (finalCtx, ctrEnc) = ctrMany' ctx0 blocks
+        // same initial state
+        (finalCtx', ctrDec) = ctrMany' ctx0 ctrEnc
+
+
+/**
+ * Here is a famous encryptor.
+ */
+aes: [256] -> [128] -> [128]
+aes = AES::encrypt
+
+/**
+ * AES Counter Mode "works".
+ *
+ * ```
+ * :check aesCtrInvertible `{8}
+ * ```
+ */
+aesCtrInvertible:
+    {n}
+    (fin n)
+    => [256] -> [n][128] -> Bit
+property aesCtrInvertible key blocks = ctrInvertible aes key blocks

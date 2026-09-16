@@ -38,3 +38,58 @@ ctrMany cipher key start blocks = [ctrOne cipher key c b | c <- counters | b <- 
     where
         // update the counter "forever"
         counters = [start, start + 1 ...]
+
+/**
+ * One deficiency of the above is that a "new"
+ * counter isn't returned! That means it might
+ * be easy for someone to accidentally re-use
+ * a counter value. That is bad!
+ *
+ * This following introduces a cipher context
+ * that is updated as it is used.
+ *
+ * The first element is the cipher, the second
+ * is a fixed key, and the third is the current
+ * counter. We imagine this being updated as blocks
+ * are processed.
+ */
+type CipherContext k w = (Cipher k w, [k], [w])
+
+/**
+ * Each time we process a block, we update
+ * the context like so...
+ */
+updateContext:
+    {k, w}
+    (fin k, fin w, w >= 1)
+    => CipherContext k w -> CipherContext k w
+updateContext (c, k, ctr) = (c, k, ctr + 1)
+
+/**
+ * Now, we return an updated context
+ * in addition to the processed block.
+ * Again, we don't bother to check for overflow,
+ * so this is unsuitable as a "valid" counter
+ * mode specification.
+ */
+ctrOne' :
+    {k, w}
+    (fin k, fin w, w >= 1)
+    => CipherContext k w -> [w] -> (CipherContext k w, [w])
+ctrOne' ctx data = (updateContext ctx, proc)
+    where
+        (c, k, ctr) = ctx
+        proc = ctrOne c k ctr data
+
+ctrMany' :
+    {n, k, w}
+    (fin k, fin w, w >= 1, fin n)
+    => CipherContext k w -> [n][w] -> (CipherContext k w, [n][w])
+ctrMany' ctx data
+    | n == 0 => (ctx, []) // return the final context
+    | n > 0 => (ctx'', [e] # es)
+        where
+            // process the first block and get the new context.
+            (ctx', e) = ctrOne' ctx (head data)
+            // process the rest of the blocks with the new context.
+            (ctx'', es) = ctrMany' ctx' (tail data)

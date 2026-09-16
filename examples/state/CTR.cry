@@ -1,0 +1,40 @@
+module CTR where
+
+/**
+ * Here, we say a cipher takes some
+ * some k-bit key and operates on a
+ * w-bit input.
+ */
+type Cipher k w = [k] -> [w] -> [w]
+
+/**
+ * Counter mode encrypts/decrypts a counter,
+ * then XORs that with the plaintext/ciphertext.
+ */
+ctrOne :
+    {k, w}
+    (fin k, fin w)
+    => Cipher k w -> [k] -> [w] -> [w] -> [w]
+ctrOne cipher key currentCounter data = processedData
+    where
+        processedCtr = cipher key currentCounter
+        processedData = data ^ processedCtr
+
+/**
+ * Counter mode can encrypt many inputs by
+ * updating the counter for each block.
+ * The usual way to update the counter is to
+ * add one.
+ *
+ * In "real" counter mode, there we shouldn't
+ * allow the counter to wrap. Here, we ignore
+ * this.
+ */
+ctrMany:
+    {n, k, w}
+    (fin n, fin k, fin w, w >= 1)
+    => Cipher k w -> [k] -> [w] -> [n][w] -> [n][w]
+ctrMany cipher key start blocks = [ctrOne cipher key c b | c <- counters | b <- blocks]
+    where
+        // update the counter "forever"
+        counters = [start, start + 1 ...]

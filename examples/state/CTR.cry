@@ -129,3 +129,24 @@ aesCtrInvertible:
     (fin n)
     => [256] -> [n][128] -> Bit
 property aesCtrInvertible key blocks = ctrInvertible aes key blocks
+
+/**
+ * The "stateful" version of CTR mode is
+ * the same as the one-shot version.
+ *
+ * This is formulated in terms of AES,
+ * but is actually true for much more general
+ * functions.
+ *
+ * ```
+ * :check aesCtrEq `{1}
+ * ```
+ */
+aesCtrEq:
+    {n}
+    (fin n)
+    => [256] -> [128] -> [n][128] -> Bit
+aesCtrEq k start data = enc0 == enc1.1
+    where
+        enc0 = ctrMany aes k start data
+        enc1 = ctrMany' (aes, k, start) data

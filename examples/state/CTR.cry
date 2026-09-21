@@ -150,3 +150,18 @@ aesCtrEq k start data = enc0 == enc1.1
     where
         enc0 = ctrMany aes k start data
         enc1 = ctrMany' (aes, k, start) data
+
+/**
+ * ```
+ * :check aesCtrIncr {2, 2}
+ * ```
+ */
+aesCtrIncr:
+    {n, m}
+    (fin n, fin m)
+    => [256] -> [128] -> [n + m][128] -> Bit
+aesCtrIncr k start data = enc0.1 == (enc1.1 # enc2.1)
+    where
+        enc0 = ctrMany' (aes, k, start) data
+        enc1 = ctrMany' (aes, k, start) (take `{n} data)
+        enc2 = ctrMany' (enc1.0) (drop `{n} data)

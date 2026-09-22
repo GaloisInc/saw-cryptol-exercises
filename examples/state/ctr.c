@@ -43,6 +43,18 @@ typedef struct U128 {
 } U128;
 
 /**
+ * This "trivial" f doesn't utilize the
+ * key and doesn't transform the block.
+ * This would be a "terrible" choice
+ * of function to use in CTR mode,
+ * but whatever.
+ */
+U128 f(uint64_t key[4], uint64_t counter) {
+    U128 transformed = {.lo = counter, .hi = 0};
+    return transformed;
+}
+
+/**
  * Counter mode works by applying some
  * function to the counter, and XORing
  * that with the plaintext. Here, we make
@@ -59,20 +71,13 @@ typedef struct U128 {
  * feasibly use a keyed hash like SHA-256-HMAC
  * in a counter mode setting.
  */
-U128 f(Ctr* ctx) {
-
+U128 applyF(Ctr* ctx) {
     // in "real life", we use a function
     // like AES to encrypt the counter.
     // Here, we will just do something
     // insecure and contrived.
     uint64_t current = update_counter(ctx);
-    uint64_t whatever = 87178291199;
-    uint64_t lo = current * whatever;
-    uint64_t hi = whatever + current;
-    // pretend this is the "encryption"
-    // of the counter.
-    U128 ctrEnc = {.lo = lo, .hi = hi};
-    return ctrEnc;
+    return f(ctx -> key, current);
 }
 
 /**
@@ -82,7 +87,7 @@ U128 f(Ctr* ctx) {
  * Here, we hardcode f.
  */
 U128 encrypt(Ctr* ctx, U128 plaintext) {
-    U128 ctrEnc = f(ctx);
+    U128 ctrEnc = applyF(ctx);
     // here is the "meat" of CTR mode...
     // we just XOR the output with the plaintext.
     U128 ciphertext = {.lo = ctrEnc.lo ^ plaintext.lo, .hi = ctrEnc.hi ^ plaintext.hi};

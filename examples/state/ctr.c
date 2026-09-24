@@ -20,13 +20,7 @@ void update_counter(uint64_t x[2]) {
  * A counter mode "context"
  *
  * This has a 256-bit key and
- * a 64 bit counter. The specification
- * has a 128 bit counter...we deviate
- * for ease of arithmetic, and practicality...
- * 64 * 128 bits is a truly massive amount
- * of data we assume we won't see in the
- * wild. We can specify this assumption
- * in our proof of equivalence.
+ * a 128-bit counter.
  */
 typedef struct Ctr {
     uint64_t key[4];
@@ -35,6 +29,31 @@ typedef struct Ctr {
 
 
 void encryptR(uint64_t* k, uint64_t* plaintext);
+
+/**
+ * Encrypt a single block in counter mode.
+ */
+void encryptCTROne(Ctr* context, uint64_t* plaintext) {
+    uint64_t encrypted_counter[2] = {0};
+    // encrypt with the current counter.
+    encryptR(context -> key, encrypted_counter);
+    // update the context
+    update_counter(context -> counter);
+
+    // XOR with the plaintext
+    plaintext[0] ^= encrypted_counter[0];
+    plaintext[1] ^= encrypted_counter[1];
+}
+
+/**
+ * Encrypt some n blocks in counter mode.
+ */
+void encryptCTR(Ctr* context, unsigned n, uint64_t* plaintext) {
+    for (unsigned i = 0; i < n; i++) {
+        encryptCTROne(context, plaintext);
+        plaintext += 2;
+    }
+}
 
 int main() {
     return 0;

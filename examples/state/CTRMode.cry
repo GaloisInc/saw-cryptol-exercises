@@ -1,0 +1,169 @@
+/**
+ * Counter mode.
+ *
+ * See NIST SP800-38A Section 6.5
+ * @see https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf
+ */
+module CTRMode where
+
+parameter
+    /**
+     * A key size.
+     */
+    type k: #
+
+    /**
+     * A block size.
+     */
+    type b: #
+
+    type constraint (fin b, b > 0)
+    type constraint (fin k, k > 0)
+
+    /**
+     * A "cipher".
+     */
+    Cipher: [k] -> [b] -> [b]
+
+    /**
+     * An "update function".
+     */
+    updateCtr: [b] -> [b]
+
+/**
+ * The sequence of counters must have the property that each
+ * block in the sequence is different from every other block.
+ *
+ * We allow this property to be truncated to some `n` less
+ * than the total number of possible blocks to make the proofs
+ * feasible.
+ */
+uniqueBlock:
+    {n}
+    (fin n, n < 2 ^^ b)
+    => [b] -> Bit
+uniqueBlock initial = allDifferent blocks
+    where
+        blocks = take `{n} (iterate updateCtr initial)
+
+/**
+ * Predicate that is true if a sequence is a sequence of counters.
+ */
+counterSequence:
+    {n}
+    (fin n, n < 2 ^^ b)
+    => [n][b] -> Bit
+counterSequence sequence
+    | n == 0 => True
+    | n == 1 => True
+    | n > 1 => b0 /\ counterSequence (tail sequence)
+        where
+            ([x, y] # s) = sequence
+            b0 = y == updateCtr x
+
+/**
+ * Predicate that the last element is the max of a sequence.
+ */
+lastMax:
+    {n}
+    (fin n)
+    => [n][b] -> Bit
+lastMax seq
+    | n == 0 => True
+    | n == 1 => True
+    | n > 1 => max (head seq) (last seq) == last seq /\ lastMax (tail seq)
+
+lastPred:
+    {n}
+    (fin n, n > 0, n < 2 ^^ b - 1)
+    => [n][b] -> Bit
+lastPred seq = lastMax seq ==> lastMax (seq # [updateCtr (last seq)])
+
+/**
+ * Example:
+ *
+ * ```
+ * :check allDifferent [1, 2, 3]
+ * :check ~allDifferent [1, 2, 1]
+ * ```
+ */
+allDifferent:
+    {n, a}
+    (fin n, Eq a)
+    => [n]a -> Bit
+allDifferent x
+    | n <= 1 => True
+    | n > 1 => ~(elem (head x) (tail x)) /\ allDifferent (tail x)
+
+/**
+ * To encrypt, encrypt each counter block and XOR it with
+ * the plaintext.
+ */
+CTREncrypt:
+    {n}
+    (fin n, n < 2 ^^ b)
+    => [k] -> [b] -> [n][b] -> [n][b]
+CTREncrypt key initial data = [CiphK ctr ^ plaintext | ctr <- ctrs | plaintext <- data]
+    where
+        CiphK = Cipher key
+        ctrs = take `{n} (iterate updateCtr initial)
+
+/**
+ * To decrypt, encrypt each counter block and XOR it with
+ * the ciphertext.
+ */
+CTRDecrypt:
+    {n}
+    (fin n, n < 2 ^^ b)
+    => [k] -> [b] -> [n][b] -> [n][b]
+CTRDecrypt = CTREncrypt
+
+/**
+ * Counter mode works!
+ */
+CTRWorks:
+    {n}
+    (fin n, n < 2 ^^ b)
+    => [k] -> [b] -> [n][b] -> Bit
+CTRWorks key initial data = CTRDecrypt key initial (CTREncrypt key initial data) == data
+
+/**
+ * Encryption is parallelizable.
+ */
+parallelEncrypt:
+    {n, m}
+    (fin n, fin m, n > 0, m > 0, n + m < 2 ^^ b)
+    => [k] -> [b] -> [n + m][b] -> Bit
+property parallelEncrypt key initial data = z == z'
+    where
+        z = CTREncrypt key initial data
+        blocks = take `{n + m} (iterate updateCtr initial)
+        first = head blocks
+        second = head (drop `{n} blocks)
+        z' = CTREncrypt key first (take `{n} data) # CTREncrypt key second (drop `{n} data)
+
+/**
+ * If a counter block is used repeatedly,
+ * then the confidentiality of all plaintext
+ * corresponding to that block is compromised.
+ *
+ * See Appendix B.
+ */
+repeatedCounter: [k] -> [b] -> [b] -> [b] -> [b] -> Bit
+property repeatedCounter key ctr0 ctr1 pt0 pt1 = block0 == block1 ==> (ct0 ^ block0 == pt0) /\
+                                                                      (ct1 ^ block0 == pt1)
+    where
+        block0 = Cipher key ctr0
+        block1 = Cipher key ctr1
+        [ct0] = CTREncrypt key ctr0 [pt0]
+        [ct1] = CTREncrypt key ctr1 [pt1]
+
+/**
+ * "Export" of the cipher.
+ */
+Cipher' = Cipher
+
+/**
+ * "Export" of the block updater.
+ */
+updateCtr' = updateCtr

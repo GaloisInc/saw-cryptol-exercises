@@ -1,0 +1,3 @@
+module SpeckCtrArith where
+
+import SpeckCTR

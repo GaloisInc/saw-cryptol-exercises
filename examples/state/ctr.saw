@@ -2,8 +2,9 @@
  * SAW demo for CTR mode.
  */
 
+include "Speck.saw";
+
 import "SpeckCTR.cry" as CryCtr;
-CCtr <- llvm_load_module "ctr.bc";
 
 /**
  * Here is an extremely common helper:
@@ -44,11 +45,11 @@ let update_counter_setup = do {
 
 // Prove that:
 //
-// The function "update_counter" in the "CCtr" bitcode
+// The function "update_counter" in the "Merged" bitcode
 // is equivalent to the Cryptol specification modulo some
 // memory wrangling and validity preconditions.
 
-update_counter_theorem0 <- llvm_verify CCtr "update_counter" [] true update_counter_setup z3;
+update_counter_theorem0 <- llvm_verify Merged "update_counter" [] true update_counter_setup z3;
 
 
 let update_counter_setup' = do {
@@ -70,7 +71,53 @@ let update_counter_setup' = do {
     llvm_points_to counterPtr (llvm_term spec);
 };
 
-llvm_verify CCtr "update_counter" [] true update_counter_setup' z3;
+llvm_verify Merged "update_counter" [] true update_counter_setup' z3;
+
+/**
+ * Let's show that one round of counter mode updates the counter correctly.
+ */
+let ctr_one_setup = do {
+
+    // here is a 128-bit counter.
+    counter <- llvm_fresh_var "counter" (llvm_int 128);
+    // as a "big endian" array of 64s...
+    let counter64 = {{ split `{2} counter }};
+
+    // here is a 256 bit key
+    key <- llvm_fresh_var "key" (llvm_int 256);
+    // as a "big endian" array of 64s...
+    let key64 = {{ split `{4} key }};
+
+    // here is a 128 bit plaintext, as 64s, and a pointer.
+    plaintext <- llvm_fresh_var "plaintext" (llvm_int 128);
+    let plaintext64 = {{ split `{2} plaintext }};
+    plaintextPtr <- alloc_init (llvm_array 2 (llvm_int 64)) (llvm_term plaintext64);
+
+    // here's something new! a pointer to a struct.
+    structPtr <- alloc_init (llvm_alias "struct.Ctr") (llvm_struct_value [llvm_term key64, llvm_term counter64]);
+
+    llvm_execute_func [structPtr, plaintextPtr];
+
+    // the key is unchanged.
+    let key64' = key64;
+
+    // the counter has been updated.
+    let counter' = {{ CryCtr::updateCtr counter }};
+    let counter64' = {{ split `{2} counter' }};
+
+    // the new struct has these updated values.
+
+    let struct' = llvm_struct_value [llvm_term key64', llvm_term counter64'];
+
+    llvm_points_to structPtr struct';
+
+    // The plaintext has actually been encrypted.
+    let spec = {{ split `{2} ((CryCtr::CTREncrypt key counter [plaintext]) @ 0) }};
+    llvm_points_to plaintextPtr (llvm_term spec);
+};
+
+llvm_verify Merged "encryptCTROne" [encryptR_theorem] true ctr_one_setup (unint_z3 ["encrypt"]);
+
 
 /**
  * Now let's consider running the counter updater "n times"
@@ -114,6 +161,38 @@ print "Proving equivalence of `updateCtr` with `128` bit modular increment.";
 updateCtr_theorem0 <- prove_print z3 {{ CryCtr::updateCtr === \(x: [128]) -> x + 1 }};
 
 print "It's good!";
+
+/**
+ * Let's consider the special case where the counter starts at 0.
+ * This is a really common "special" case. If we aren't going to overflow,
+ * then applying the counter update function makes us greater than the previous
+ * value.
+ */
+updateCtr_theorem1 <- prove_print z3 {{ \(x: [128]) -> x < negate 1 ==> x < CryCtr::updateCtr x }};
+
+/**
+ * If the last value is the max of some sequence, and it is less than the
+ * overflow bound, then the counter update of the max is the new max.
+ */
+let maxStatement n = {{ \(x:[n][128]) -> last x < negate 1 /\ CryCtr::lastMax x ==> CryCtr::lastMax (x # [CryCtr::updateCtr (last x)])}};
+
+maxTheorem1 <- prove_print z3 (maxStatement 1);
+maxTheorem2 <- prove_print z3 (maxStatement 2);
+
+let maxStatement' n = {{ CryCtr::lastPred `{n} }};
+
+maxTheorem1' <- prove_print z3 (maxStatement 1);
+maxTheorem2' <- prove_print z3 (maxStatement 2);
+
+
+
+/**
+ * Let's consider the allDifferent predicate.
+ */
+allDifferent0 <- prove_print z3 {{ CryCtr::allDifferent `{a=[128]} [] }};
+allDifferent1 <- prove_print z3 {{ \x -> CryCtr::allDifferent `{a=[128]} [x] }};
+allDifferent2 <- prove_print z3 {{ \x -> CryCtr::allDifferent `{a=[128]} [x, CryCtr::updateCtr x]}};
+
 
 print "Prove some properties of the counter updater.";
 
@@ -183,56 +262,3 @@ print "They're good!";
  * Since the block updater is addition, it decomposes!
  */
 prove_print z3 {{ \x y z -> (z == x + y) ==> (add1 z == add1 (x + y)) /\ add1 z == x + y + 1 }};
-
-
-
-
-/**
- * Here is another extremely common helper:
- *
- * This takes a "name" and type argument.
- * The name is arbitrary.
- *
- * 1. Create a fresh (Cryptol) variable of a given type.
- * 2a. Promote that variable to an LLVM one.
- * 2b. Get a pointer to that (LLVM) variable.
- * 3. Return the (Cryptol) variable and the (LLVM) pointer.
- */
-let ptr_to_fresh n ty = do {
-    x <- llvm_fresh_var n ty;
-    p <- alloc_init ty (llvm_term x);
-    return (x, p);
-};
-
-/**
- * Let's introduce a helper function to
- * get a Ctr struct. This allocates a new
- * key and arbitrary counter state.
- *
- * 1. Get a 256-bit (Cryptol) key and (LLVM) pointer.
- * 2. Get a (Cryptol) counter.
- * 3. Create a Ctr struct pointer using these (LLVM) values.
- */
-let arbCtr = do {
-    (key, keyP) <- ptr_to_fresh "key" (llvm_array 4 (llvm_int 64));
-    counter <- llvm_fresh_var "counter" (llvm_int 64);
-    CtrP <- alloc_init (llvm_alias "Ctr.s") (llvm_struct_value [keyP, llvm_term counter]);
-    return (key, keyP, counter, CtrP);
-};
-
-/**
- * Let's prove that each invocation of update_counter:
- *
- * 1. Returns the "current" state.
- * 2. Increments the "internal" state.
- * 3. Is equivalent to the "counter update"
- *    portion of the updateContext spec.
- *
- * By (3) we mean specifically that:
- * 3a. The key is unchanged.
- * 3b. The counter is "1 + the current".
- *
- * Notice that 3b requires a precondition!
- *
- */
-let update_counter_setup' = undefined;

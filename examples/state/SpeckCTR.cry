@@ -1,0 +1,8 @@
+module SpeckCTR = CTRMode where
+
+import Speck128_256 as Speck
+
+type k = 256
+type b = 128
+Cipher = Speck::encrypt
+updateCtr c = c + 1

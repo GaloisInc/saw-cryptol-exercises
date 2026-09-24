@@ -96,9 +96,9 @@ time (prove_print z3 (uniqueBlockN 32 ));
 print "64 Blocks";
 time (prove_print z3 (uniqueBlockN 64 ));
 print "128 Blocks";
-time (prove_print z3 (uniqueBlockN 128 ));
+//time (prove_print z3 (uniqueBlockN 128 ));
 print "256 Blocks";
-time (prove_print z3 (uniqueBlockN 256 ));
+//time (prove_print z3 (uniqueBlockN 256 ));
 
 
 /**
@@ -138,9 +138,41 @@ prove_print z3 {{ \x y -> (add1 x == add1 y) ==> x == y }};
 prove_print z3 {{ \x -> add1 (x - 1) == x }};
 
 /**
- * Consider the sequence of 128-bit values starting at `b`.
+ * The contrapositive of the one to one property is useful...
  */
-let plusOne n b = {{ take `{n} [ (`b : [128], `b + 1 ...)] }};
+prove_print z3 {{ \x y -> x != y ==> add1 x != add1 y }};
+
+/**
+ * ...and the block updater also decomposes like so...
+ * ...this will help us deal with offsets.
+ */
+prove_print z3 {{ \x y -> add1 (x + y) == add1 x + y }};
+
+/**
+ * In particular, the above gives for any sequence b, b + 1, ...
+ * we may instead consider 0, 1, ... and add the offset.
+ *
+ * map add1 [b, b + 1, ...]
+ * [add1 b, add1 (b + 1), ...]
+ * [add1 (0 + b), add1 (1 + b), ...]
+ * [add1 0 + b, add1 1 + b, ...]
+ * map (\i -> i + b) [add1 0, add1 1, ...]
+ * map (\i -> i + b) (map add1 [0, 1, ...])
+ */
+let offsetEq n = {{ \b -> map add1 (take `{n} [b : [128], b + 1 ...]) == take `{n} (map (\i -> i + b) (map add1 [0, 1 ...]))}};
+
+prove_print z3 (offsetEq 128);
+
+/**
+ * The one to one property gives us that if we have any set
+ * of distinct 128 bit values, mapping updateCtr over the set
+ * maintains the property.
+ */
+let updateCtrPreservesAllDifferent n = {{ \(x: [n][128]) -> CryCtr::allDifferent x ==> CryCtr::allDifferent (map add1 x)}};
+
+prove_print z3 (updateCtrPreservesAllDifferent 8);
+prove_print z3 (updateCtrPreservesAllDifferent 16);
+
 
 
 

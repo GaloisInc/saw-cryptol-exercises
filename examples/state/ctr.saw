@@ -72,6 +72,34 @@ let update_counter_setup' = do {
 
 llvm_verify CCtr "update_counter" [] true update_counter_setup' z3;
 
+/**
+ * Now let's consider running the counter updater "n times"
+ * with "any" starting block.
+ */
+let uniqueBlockN n = {{ \b -> CryCtr::allDifferent ( take `{n} (iterate CryCtr::updateCtr b)) }};
+
+/**
+ * Z3 crushes the `allDifferent` proof on the block sequence
+ * for small `n` and a fixed initial value, but this won't
+ * scale for large inputs (e.g., millions of bits).
+ */
+print "0 Blocks";
+time (prove_print z3 (uniqueBlockN 0 ));
+print "1 Block";
+time (prove_print z3 (uniqueBlockN 1 ));
+print "8 Blocks";
+time (prove_print z3 (uniqueBlockN 8 ));
+print "16 Blocks";
+time (prove_print z3 (uniqueBlockN 16 ));
+print "32 Blocks";
+time (prove_print z3 (uniqueBlockN 32 ));
+print "64 Blocks";
+time (prove_print z3 (uniqueBlockN 64 ));
+print "128 Blocks";
+time (prove_print z3 (uniqueBlockN 128 ));
+print "256 Blocks";
+time (prove_print z3 (uniqueBlockN 256 ));
+
 
 /**
  * Let's show that the counter actually upholds the unique block
@@ -109,6 +137,14 @@ prove_print z3 {{ \x y -> (add1 x == add1 y) ==> x == y }};
  */
 prove_print z3 {{ \x -> add1 (x - 1) == x }};
 
+/**
+ * Consider the sequence of 128-bit values starting at `b`.
+ */
+let plusOne n b = {{ take `{n} [ (`b : [128], `b + 1 ...)] }};
+
+
+
+
 print "They're good!";
 
 /**
@@ -116,31 +152,6 @@ print "They're good!";
  */
 prove_print z3 {{ \x y z -> (z == x + y) ==> (add1 z == add1 (x + y)) /\ add1 z == x + y + 1 }};
 
-/**
- * Now let's consider running the counter updater "n times"
- * with "any" starting block.
- */
-let blockSequence n b = {{ take `{n} (iterate CryCt::updateCtr `b) }};
-
-let uniqueBlockNB n b = {{ CryCtr::allDifferent ( take `{n} (iterate CryCtr::updateCtr `b)) }};
-
-/**
- * Z3 crushes the `allDifferent` proof on the block sequence
- * for small `n` and a fixed initial value, but this won't
- * scale for large inputs (e.g., millions of bits).
- */
-print "8 Blocks";
-time (prove_print z3 (uniqueBlockNB 8 0 ));
-print "16 Blocks";
-time (prove_print z3 (uniqueBlockNB 16 0 ));
-print "32 Blocks";
-time (prove_print z3 (uniqueBlockNB 32 0 ));
-print "64 Blocks";
-time (prove_print z3 (uniqueBlockNB 64 0 ));
-print "128 Blocks";
-time (prove_print z3 (uniqueBlockNB 128 0 ));
-print "256 Blocks";
-time (prove_print z3 (uniqueBlockNB 256 0 ));
 
 
 

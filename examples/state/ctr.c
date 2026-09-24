@@ -34,7 +34,7 @@ void encryptR(uint64_t* k, uint64_t* plaintext);
  * Encrypt a single block in counter mode.
  */
 void encryptCTROne(Ctr* context, uint64_t* plaintext) {
-    uint64_t encrypted_counter[2] = {0};
+    uint64_t encrypted_counter[2] = {context -> counter[0], context -> counter[1]};
     // encrypt with the current counter.
     encryptR(context -> key, encrypted_counter);
     // update the context
@@ -56,5 +56,17 @@ void encryptCTR(Ctr* context, unsigned n, uint64_t* plaintext) {
 }
 
 int main() {
+    Ctr ctx = {.counter = {0}, .key = {0}};
+    uint64_t pt[2] = {0};
+    encryptCTROne(&ctx, pt);
+    printf("%llu %llu\n", pt[0], pt[1]);
+    printf("%llu %llu\n", ctx.counter[0], ctx.counter[1]);
+
+    Ctr ctx1 = {.counter = {0xf6dc8b236b711d52, 0x672426f966dc9e74}, .key = {0x90bdf8f4bf4bb964, 0xb86444fbf46c4914, 0x84059a91ae5e68e0, 0x21ffd423664b32cc}};
+    uint64_t pt1[2] = {0x54c492564ac6e1a4, 0x67c666c8808992ed};
+    encryptCTROne(&ctx1, pt1);
+    printf("%llu %llu\n", pt1[0], pt1[1]);
+    printf("%llu %llu\n", ctx1.counter[0], ctx1.counter[1]);
+
     return 0;
 }

@@ -20,7 +20,6 @@ let alloc_init ty v = do {
     return p;
 };
 
-
 /**
  * Here is the counter update.
  */

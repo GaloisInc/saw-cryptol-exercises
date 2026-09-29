@@ -47,6 +47,23 @@ uniqueBlock initial = allDifferent blocks
         blocks = take `{n} (iterate updateCtr initial)
 
 /**
+ * If the `Cipher` is a bijection, then not repeating a counter
+ * block is enough to show that the key stream won't have any
+ * repeats. Supposing the `Cipher` is not a bijection, say,
+ * with a non-standard construction like HMAC, then the "real"
+ * guarantee is provided by the actual key stream not having
+ * repeats.
+ */
+uniqueBlock':
+    {n}
+    (fin n, n < 2 ^^ b)
+    => [k] -> [b] -> Bit
+uniqueBlock' key initial = allDifferent keyStream
+    where
+        blocks = take `{n} (iterate updateCtr initial)
+        keyStream = map (Cipher key) blocks
+
+/**
  * Predicate that is true if a sequence is a sequence of counters.
  */
 counterSequence:

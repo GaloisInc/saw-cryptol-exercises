@@ -20,39 +20,11 @@ let alloc_init ty v = do {
     return p;
 };
 
+
 /**
- * Let's specify how the counter gets updated.
+ * Here is the counter update.
  */
 let update_counter_setup = do {
-    // here is a 128-bit counter.
-    counter <- llvm_fresh_var "counter" (llvm_int 128);
-    // as a "big endian" array of 64s...
-    let counter64 = {{ split `{2} counter }};
-    // get a pointer to that thing...
-    counterPtr <- alloc_init (llvm_array 2 (llvm_int 64)) (llvm_term counter64);
-
-    // execute the function.
-    llvm_execute_func [counterPtr];
-
-    // assert that the new state of the counter
-    // is equivalent to the "straightforward"
-    // bitvector addition.
-
-    let spec = {{ split `{2} (counter + 1)}};
-
-    llvm_points_to counterPtr (llvm_term spec);
-};
-
-// Prove that:
-//
-// The function "update_counter" in the "Merged" bitcode
-// is equivalent to the Cryptol specification modulo some
-// memory wrangling and validity preconditions.
-
-update_counter_theorem0 <- llvm_verify Merged "update_counter" [] true update_counter_setup z3;
-
-
-let update_counter_setup' = do {
     // here is a 128-bit counter.
     counter <- llvm_fresh_var "counter" (llvm_int 128);
     // as a "big endian" array of 64s...
@@ -71,7 +43,13 @@ let update_counter_setup' = do {
     llvm_points_to counterPtr (llvm_term spec);
 };
 
-llvm_verify Merged "update_counter" [] true update_counter_setup' z3;
+// Prove that:
+//
+// The function "update_counter" in the "Merged" bitcode
+// is equivalent to the Cryptol specification modulo some
+// memory wrangling and validity preconditions.
+
+update_counter_theorem0 <- time(llvm_verify Merged "update_counter" [] true update_counter_setup z3);
 
 /**
  * Let's show that one round of counter mode updates the counter correctly.
@@ -116,7 +94,7 @@ let ctr_one_setup = do {
     llvm_points_to plaintextPtr (llvm_term spec);
 };
 
-llvm_verify Merged "encryptCTROne" [encryptR_theorem] true ctr_one_setup (unint_z3 ["encrypt"]);
+encrypt_one_theorem <- time(llvm_verify Merged "encryptCTROne" [encryptR_theorem] true ctr_one_setup (unint_z3 ["encrypt"]));
 
 
 /**
@@ -144,5 +122,5 @@ print "64 Blocks";
 time (prove_print z3 (uniqueBlockN 64 ));
 print "128 Blocks";
 time (prove_print z3 (uniqueBlockN 128 ));
-// print "256 Blocks";
-//time (prove_print z3 (uniqueBlockN 256 ));
+print "256 Blocks";
+time (prove_print z3 (uniqueBlockN 256 ));

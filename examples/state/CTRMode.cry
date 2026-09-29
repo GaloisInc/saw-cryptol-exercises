@@ -64,39 +64,6 @@ uniqueBlock' key initial = allDifferent keyStream
         keyStream = map (Cipher key) blocks
 
 /**
- * Predicate that is true if a sequence is a sequence of counters.
- */
-counterSequence:
-    {n}
-    (fin n, n < 2 ^^ b)
-    => [n][b] -> Bit
-counterSequence sequence
-    | n == 0 => True
-    | n == 1 => True
-    | n > 1 => b0 /\ counterSequence (tail sequence)
-        where
-            ([x, y] # s) = sequence
-            b0 = y == updateCtr x
-
-/**
- * Predicate that the last element is the max of a sequence.
- */
-lastMax:
-    {n}
-    (fin n)
-    => [n][b] -> Bit
-lastMax seq
-    | n == 0 => True
-    | n == 1 => True
-    | n > 1 => max (head seq) (last seq) == last seq /\ lastMax (tail seq)
-
-lastPred:
-    {n}
-    (fin n, n > 0, n < 2 ^^ b - 1)
-    => [n][b] -> Bit
-lastPred seq = lastMax seq ==> lastMax (seq # [updateCtr (last seq)])
-
-/**
  * Example:
  *
  * ```
@@ -184,3 +151,37 @@ Cipher' = Cipher
  * "Export" of the block updater.
  */
 updateCtr' = updateCtr
+
+
+/**
+ * Predicate that is true if a sequence is a sequence of counters.
+ */
+counterSequence:
+    {n}
+    (fin n, n < 2 ^^ b)
+    => [n][b] -> Bit
+counterSequence sequence
+    | n == 0 => True
+    | n == 1 => True
+    | n > 1 => b0 /\ counterSequence (tail sequence)
+        where
+            ([x, y] # s) = sequence
+            b0 = y == updateCtr x
+
+/**
+ * Predicate that the last element is the max of a sequence.
+ */
+lastMax:
+    {n}
+    (fin n)
+    => [n][b] -> Bit
+lastMax seq
+    | n == 0 => True
+    | n == 1 => True
+    | n > 1 => max (head seq) (last seq) == last seq /\ lastMax (tail seq)
+
+lastPred:
+    {n}
+    (fin n, n > 0, n < 2 ^^ b - 1)
+    => [n][b] -> Bit
+lastPred seq = lastMax seq ==> lastMax (seq # [updateCtr (last seq)])

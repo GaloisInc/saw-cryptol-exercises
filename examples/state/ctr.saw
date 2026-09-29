@@ -129,7 +129,7 @@ time (prove_print z3 (uniqueBlockN 256 ));
 
 /**
  * I can't just simply uninterpret my way out of this...
- * We'll need a different toool.
+ * We'll need a different strategy.
  */
 let uniqueBlockN' n = {{ \k b -> CryCtr::uniqueBlock' `{n} k b }};
 

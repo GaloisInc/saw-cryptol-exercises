@@ -205,3 +205,69 @@ let decrypt_setup = do {
 };
 
 decrypt_theorem <- llvm_verify Merged "decrypt" [R_Inv_theorem] true decrypt_setup (unint_z3 ["R_Inv"]);
+
+
+// Let's show that the decrypt and encrypt functions are inverses.
+// We will build up to this by showing the round function is invertible.
+//
+// We've already written this property in Cryptol, so we don't need
+// to reproduce it here!
+
+print "Prove that R is invertible with z3.";
+
+RInvertibleTheorem <- time (prove_print z3 {{ CrySpeck::RInvertible }} );
+
+print "Prove that decrypt inverts encrypt.";
+
+// Z3 can't cut it alone on this proof. We need to make
+// the prover's life easier. So far, the only proof scripts
+// we have used are z3 and unint_z3. Now, we write a "custom"
+// proof script.
+
+let SpeckInversionScript = do {
+
+    // Let's print out the goal so we can look at it.
+    print_goal;
+
+    // This will be a little weird to read, but we should
+    // recongize it roughly as the property we would like
+    // to prove.
+
+    // We instruct SAW to "unfold" all of the definitions,
+    // but treat keySchedule, R, and R inverse as uinterpreted functions.
+    //
+    // Informal justification:
+    //
+    // We plan on unrolling Speck so that it looks like a whole bunch of
+    // round functions one right after the other. We know that the inverse
+    // round function inverts the round function by our previous proof.
+    // We don't actually care about the what the bits inside the round
+    // functions look like, only that if the corresponding key and data
+    // arguments line up, that we get the identity function. Likewise,
+    // we don't care what the particular round keys look like from the
+    // key schedule, only that they line up inside of R.
+    goal_eval_unint ["keySchedule", "R", "R_Inv"];
+
+    // You can print the goal now, but it will look really ugly.
+    // print_goal;
+
+    // Now we've unrolled the Speck equations so that the R and R_Inv
+    // symbols are lying around. Remember our previous proof matches on
+    // R and R_Inv symbols...SAW can do a lot of rewriting automatically
+    // with the simplify command, as long as we tell SAW what theorems
+    // are ok to use.
+    //
+    // Here, we tell SAW we believe R and R_Inv are inverses of each other.
+
+    let lemmas = addsimp RInvertibleTheorem (cryptol_ss ());
+
+    // Now, we tell SAW to rewrite.
+    simplify lemmas;
+
+    // Now, Z3 crushes what remains.
+    z3;
+};
+
+prove_print SpeckInversionScript {{ CrySpeck::decryptInvertsEncrypt }};
+
+print "We did it!";

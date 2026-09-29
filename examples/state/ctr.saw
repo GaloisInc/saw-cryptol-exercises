@@ -100,8 +100,10 @@ encrypt_one_theorem <- time(llvm_verify Merged "encryptCTROne" [encryptR_theorem
 /**
  * Now let's consider running the counter updater "n times"
  * with "any" starting block.
+ *
+ * Why isn't this good enough to get the security property uniqueBlock'?
  */
-let uniqueBlockN n = {{ \b -> CryCtr::allDifferent ( take `{n} (iterate CryCtr::updateCtr b)) }};
+let uniqueBlockN n = {{ \b -> CryCtr::uniqueBlock `{n} b }};
 
 /**
  * Z3 crushes the `allDifferent` proof on the block sequence
@@ -124,3 +126,19 @@ print "128 Blocks";
 time (prove_print z3 (uniqueBlockN 128 ));
 print "256 Blocks";
 time (prove_print z3 (uniqueBlockN 256 ));
+
+/**
+ * I can't just simply uninterpret my way out of this...
+ * We'll need a different toool.
+ */
+let uniqueBlockN' n = {{ \k b -> CryCtr::uniqueBlock' `{n} k b }};
+
+/**
+ * Z3 can't get through many Speck encryptions without assistance.
+ */
+print "0 Encrypted Blocks";
+time (prove_print z3 (uniqueBlockN' 0 ));
+print "1 Encrypted Block";
+time (prove_print z3 (uniqueBlockN' 1 ));
+print "8 Encrypted Blocks";
+time (prove_print z3 (uniqueBlockN' 8 ));

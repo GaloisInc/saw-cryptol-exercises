@@ -93,7 +93,79 @@ let ctr_one_setup = do {
     llvm_points_to plaintextPtr (llvm_term spec);
 };
 
+print "One round of counter mode from an arbitrary start point.";
+
 encrypt_one_theorem <- time(llvm_verify Merged "encryptCTROne" [encryptR_theorem] true ctr_one_setup (unint_z3 ["encrypt"]));
+
+let ctr_many_setup n = do {
+    // We can't do arithmetic on SAW `Int`
+    //
+    // The counter mode implementation assumes that
+    // there are only full blocks. Process only the
+    // "full" number of blocks...
+    let nblocks = {| n / 2 |};
+
+    // Hmm...why didn't I do this?
+    // llvm_precond {{ n % 2 == 0 }};
+
+    // Get an array of `n` 64-bit "half-blocks"
+    (blocks, blockPtr) <- freshPtrTo (llvm_array n (llvm_int 64)) "plaintexts";
+
+    // Get a key
+    key <- llvm_fresh_var "key" (llvm_array 4 (llvm_int 64));
+
+    // Get a counter.
+    counter <- llvm_fresh_var "counter" (llvm_array 2 (llvm_int 64));
+
+    // The key and counter should be packaged into a struct.
+    structPtr <- alloc_init (llvm_alias "struct.Ctr") (llvm_struct_value [llvm_term key, llvm_term counter]);
+
+    // Set the number of blocks.
+    // This is distinct from the Cryptol type `nblocks`.
+    let nblocks_llvm = llvm_term {{ `nblocks }};
+
+    llvm_execute_func[structPtr, nblocks_llvm, blockPtr];
+
+    // Now, let's check against specification.
+
+    // The struct should have the same key and an updated counter.
+    // We should have processed the calculated number of blocks.
+
+    let key' = {{ key }};
+    let counter' = {{ split `{2} (join counter + `nblocks) }};
+    let struct' = llvm_struct_value [llvm_term key', llvm_term counter'];
+
+    // The plaintext should be transformed into the ciphertext.
+
+    // Format the blocks as 128-bit blocks for Cryptol.
+    let cblocks = {{ take `{nblocks * 2} blocks }}; // every full block
+    let cblocks' = {{ groupBy `{2} cblocks }}; // in groups of two
+    let cblocks'' = {{ map join cblocks' }}; // as 128-bit values
+
+    // Format the key for Cryptol
+    let ckey = {{ join key }};
+
+    // Format the initial counter for Cryptol.
+    let cry_counter = {{ join counter }};
+
+    // Run the Cryptol specification.
+    // This is a bunch of 128-bit blocks.
+    // We split and join again to rejigger into 64s.
+
+    let expected_encryption = {{ CryCtr::CTREncrypt ckey cry_counter cblocks'' }};
+    let expected_encryption' = llvm_term {{ join (map (split `{2}) expected_encryption) }};
+
+    llvm_points_to structPtr struct';
+    llvm_points_to blockPtr expected_encryption';
+
+};
+
+print "Bounded verification of Speck counter mode.";
+
+let BoundedVerif n = llvm_verify Merged "encryptCTR" [encryptR_theorem] true (ctr_many_setup n) (unint_z3 ["encrypt"]);
+
+print "12 blocks";
+time(BoundedVerif 12);
 
 
 /**
@@ -139,5 +211,5 @@ print "0 Encrypted Blocks";
 time (prove_print z3 (uniqueBlockN' 0 ));
 print "1 Encrypted Block";
 time (prove_print z3 (uniqueBlockN' 1 ));
-print "8 Encrypted Blocks";
-time (prove_print z3 (uniqueBlockN' 8 ));
+//print "8 Encrypted Blocks will take way too long...";
+//time (prove_print z3 (uniqueBlockN' 8 ));

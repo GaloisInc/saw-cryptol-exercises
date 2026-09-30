@@ -230,11 +230,11 @@ let SpeckInversionScript = do {
     print_goal;
 
     // This will be a little weird to read, but we should
-    // recongize it roughly as the property we would like
+    // recognize it roughly as the property we would like
     // to prove.
 
     // We instruct SAW to "unfold" all of the definitions,
-    // but treat keySchedule, R, and R inverse as uinterpreted functions.
+    // but treat keySchedule, R, and R inverse as uninterpreted functions.
     //
     // Informal justification:
     //
@@ -257,7 +257,7 @@ let SpeckInversionScript = do {
     // with the simplify command, as long as we tell SAW what theorems
     // are ok to use.
     //
-    // Here, we tell SAW we believe R and R_Inv are inverses of each other.
+    // Here, we tell SAW we know R and R_Inv are inverses of each other.
 
     let lemmas = addsimp RInvertibleTheorem (cryptol_ss ());
 

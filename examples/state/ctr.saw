@@ -121,8 +121,7 @@ let ctr_many_setup n = do {
     structPtr <- alloc_init (llvm_alias "struct.Ctr") (llvm_struct_value [llvm_term key, llvm_term counter]);
 
     // Set the number of blocks.
-    // This is distinct from the Cryptol type `nblocks`.
-    let nblocks_llvm = llvm_term {{ `nblocks }};
+    let nblocks_llvm = llvm_term {{ `nblocks : [32] }};
 
     llvm_execute_func[structPtr, nblocks_llvm, blockPtr];
 
@@ -132,13 +131,13 @@ let ctr_many_setup n = do {
     // We should have processed the calculated number of blocks.
 
     let key' = {{ key }};
-    let counter' = {{ split `{2} (join counter + `nblocks) }};
+    let counter' = {{ split `{2} (join counter + `(nblocks)) }};
     let struct' = llvm_struct_value [llvm_term key', llvm_term counter'];
 
     // The plaintext should be transformed into the ciphertext.
 
     // Format the blocks as 128-bit blocks for Cryptol.
-    let cblocks = {{ take `{nblocks * 2} blocks }}; // every full block
+    let cblocks = {{ take `{(nblocks) * 2} blocks }}; // every full block
     let cblocks' = {{ groupBy `{2} cblocks }}; // in groups of two
     let cblocks'' = {{ map join cblocks' }}; // as 128-bit values
 
@@ -164,8 +163,13 @@ print "Bounded verification of Speck counter mode.";
 
 let BoundedVerif n = llvm_verify Merged "encryptCTR" [encryptR_theorem] true (ctr_many_setup n) (unint_z3 ["encrypt"]);
 
-print "12 blocks";
-time(BoundedVerif 12);
+print "24 blocks";
+CTRVerif24 <- time(BoundedVerif 24);
+
+print "36 blocks";
+CTRVerif36 <- time(BoundedVerif 36);
+
+
 
 
 /**
